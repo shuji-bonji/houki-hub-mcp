@@ -1,33 +1,242 @@
 [
-  { "abbr": "会社", "formal": "会社法", "law_id": "417AC0000000086", "law_num": "平成十七年法律第八十六号", "law_type": "Act", "domain": "commercial", "aliases": ["会社法"] },
-  { "abbr": "会社規", "formal": "会社法施行規則", "law_id": null, "law_type": "MinisterialOrdinance", "domain": "commercial", "aliases": ["会社法施行規則"] },
-  { "abbr": "会社整備", "formal": "会社法の施行に伴う関係法律の整備等に関する法律", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "商", "formal": "商法", "law_id": "132AC0000000048", "law_num": "明治三十二年法律第四十八号", "law_type": "Act", "domain": "commercial", "aliases": ["商法"] },
-  { "abbr": "商登法", "formal": "商業登記法", "law_id": null, "law_type": "Act", "domain": "commercial", "aliases": ["商業登記法"] },
-  { "abbr": "商登則", "formal": "商業登記規則", "law_id": null, "law_type": "MinisterialOrdinance", "domain": "commercial" },
-  { "abbr": "手形法", "formal": "手形法", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "小切手法", "formal": "小切手法", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "金商法", "formal": "金融商品取引法", "law_id": null, "law_type": "Act", "domain": "commercial", "aliases": ["金商", "金融商品取引法"] },
-  { "abbr": "独禁法", "formal": "私的独占の禁止及び公正取引の確保に関する法律", "law_id": null, "law_type": "Act", "domain": "commercial", "aliases": ["独占禁止法"], "note": "通称: 独占禁止法" },
-  { "abbr": "下請法", "formal": "下請代金支払遅延等防止法", "law_id": null, "law_type": "Act", "domain": "commercial", "note": "通称: 下請法" },
-  { "abbr": "不競法", "formal": "不正競争防止法", "law_id": null, "law_type": "Act", "domain": "commercial", "aliases": ["不正競争防止法"] },
-  { "abbr": "特商法", "formal": "特定商取引に関する法律", "law_id": null, "law_type": "Act", "domain": "commercial", "aliases": ["特定商取引法"], "note": "通称: 特定商取引法" },
-  { "abbr": "割販法", "formal": "割賦販売法", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "消契法", "formal": "消費者契約法", "law_id": null, "law_type": "Act", "domain": "commercial", "aliases": ["消費者契約法"] },
-  { "abbr": "景表法", "formal": "不当景品類及び不当表示防止法", "law_id": null, "law_type": "Act", "domain": "commercial", "aliases": ["景品表示法"], "note": "通称: 景品表示法" },
-  { "abbr": "消安法", "formal": "消費生活用製品安全法", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "特許法", "formal": "特許法", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "実案法", "formal": "実用新案法", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "意匠法", "formal": "意匠法", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "商標法", "formal": "商標法", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "著作権法", "formal": "著作権法", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "種苗法", "formal": "種苗法", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "半導体回路配置法", "formal": "半導体集積回路の回路配置に関する法律", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "保険業法", "formal": "保険業法", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "銀行法", "formal": "銀行法", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "電子署名法", "formal": "電子署名及び認証業務に関する法律", "law_id": null, "law_type": "Act", "domain": "commercial", "aliases": ["電子署名"], "note": "通称: 電子署名法。電子契約の法的効力の根拠" },
-  { "abbr": "電子委任状法", "formal": "電子委任状の普及の促進に関する法律", "law_id": null, "law_type": "Act", "domain": "commercial" },
-  { "abbr": "IT書面一括法", "formal": "書面の交付等に関する情報通信の技術の利用のための関係法律の整備に関する法律", "law_id": null, "law_type": "Act", "domain": "commercial", "note": "通称: IT書面一括法" },
-  { "abbr": "資金決済法", "formal": "資金決済に関する法律", "law_id": null, "law_type": "Act", "domain": "commercial", "aliases": ["資金決済"], "note": "暗号資産・前払式支払手段・資金移動業の根拠" },
-  { "abbr": "犯収法", "formal": "犯罪による収益の移転防止に関する法律", "law_id": null, "law_type": "Act", "domain": "commercial", "aliases": ["犯罪収益移転防止法", "AML"], "note": "通称: 犯罪収益移転防止法。e-KYC の根拠" }
+  {
+    "abbr": "会社",
+    "formal": "会社法",
+    "law_id": "417AC0000000086",
+    "law_num": "平成十七年法律第八十六号",
+    "law_type": "Act",
+    "domain": "commercial",
+    "aliases": ["会社法"]
+  },
+  {
+    "abbr": "会社規",
+    "formal": "会社法施行規則",
+    "law_id": null,
+    "law_type": "MinisterialOrdinance",
+    "domain": "commercial",
+    "aliases": ["会社法施行規則"]
+  },
+  {
+    "abbr": "会社整備",
+    "formal": "会社法の施行に伴う関係法律の整備等に関する法律",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "商",
+    "formal": "商法",
+    "law_id": "132AC0000000048",
+    "law_num": "明治三十二年法律第四十八号",
+    "law_type": "Act",
+    "domain": "commercial",
+    "aliases": ["商法"]
+  },
+  {
+    "abbr": "商登法",
+    "formal": "商業登記法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial",
+    "aliases": ["商業登記法"]
+  },
+  {
+    "abbr": "商登則",
+    "formal": "商業登記規則",
+    "law_id": null,
+    "law_type": "MinisterialOrdinance",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "手形法",
+    "formal": "手形法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "小切手法",
+    "formal": "小切手法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "金商法",
+    "formal": "金融商品取引法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial",
+    "aliases": ["金商", "金融商品取引法"]
+  },
+  {
+    "abbr": "独禁法",
+    "formal": "私的独占の禁止及び公正取引の確保に関する法律",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial",
+    "aliases": ["独占禁止法"],
+    "note": "通称: 独占禁止法"
+  },
+  {
+    "abbr": "下請法",
+    "formal": "下請代金支払遅延等防止法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial",
+    "note": "通称: 下請法"
+  },
+  {
+    "abbr": "不競法",
+    "formal": "不正競争防止法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial",
+    "aliases": ["不正競争防止法"]
+  },
+  {
+    "abbr": "特商法",
+    "formal": "特定商取引に関する法律",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial",
+    "aliases": ["特定商取引法"],
+    "note": "通称: 特定商取引法"
+  },
+  {
+    "abbr": "割販法",
+    "formal": "割賦販売法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "消契法",
+    "formal": "消費者契約法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial",
+    "aliases": ["消費者契約法"]
+  },
+  {
+    "abbr": "景表法",
+    "formal": "不当景品類及び不当表示防止法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial",
+    "aliases": ["景品表示法"],
+    "note": "通称: 景品表示法"
+  },
+  {
+    "abbr": "消安法",
+    "formal": "消費生活用製品安全法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "特許法",
+    "formal": "特許法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "実案法",
+    "formal": "実用新案法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "意匠法",
+    "formal": "意匠法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "商標法",
+    "formal": "商標法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "著作権法",
+    "formal": "著作権法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "種苗法",
+    "formal": "種苗法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "半導体回路配置法",
+    "formal": "半導体集積回路の回路配置に関する法律",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "保険業法",
+    "formal": "保険業法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "銀行法",
+    "formal": "銀行法",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "電子署名法",
+    "formal": "電子署名及び認証業務に関する法律",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial",
+    "aliases": ["電子署名"],
+    "note": "通称: 電子署名法。電子契約の法的効力の根拠"
+  },
+  {
+    "abbr": "電子委任状法",
+    "formal": "電子委任状の普及の促進に関する法律",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial"
+  },
+  {
+    "abbr": "IT書面一括法",
+    "formal": "書面の交付等に関する情報通信の技術の利用のための関係法律の整備に関する法律",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial",
+    "note": "通称: IT書面一括法"
+  },
+  {
+    "abbr": "資金決済法",
+    "formal": "資金決済に関する法律",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial",
+    "aliases": ["資金決済"],
+    "note": "暗号資産・前払式支払手段・資金移動業の根拠"
+  },
+  {
+    "abbr": "犯収法",
+    "formal": "犯罪による収益の移転防止に関する法律",
+    "law_id": null,
+    "law_type": "Act",
+    "domain": "commercial",
+    "aliases": ["犯罪収益移転防止法", "AML"],
+    "note": "通称: 犯罪収益移転防止法。e-KYC の根拠"
+  }
 ]

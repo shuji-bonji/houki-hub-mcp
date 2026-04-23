@@ -6,12 +6,7 @@
  */
 
 import { resolveAbbreviation } from '../abbreviations/index.js';
-import type {
-  SearchLawArgs,
-  GetLawArgs,
-  GetTocArgs,
-  SearchFulltextArgs,
-} from '../types/index.js';
+import type { SearchLawArgs, GetLawArgs, GetTocArgs, SearchFulltextArgs } from '../types/index.js';
 
 const NOT_IMPLEMENTED = {
   status: 'not_implemented',

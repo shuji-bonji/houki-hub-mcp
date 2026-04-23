@@ -59,17 +59,51 @@
 
 ## 現状
 
-**Phase 0（スケルトン整備中）** — 2026-04-23 開始
+[![CI](https://github.com/shuji-bonji/houki-hub-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/shuji-bonji/houki-hub-mcp/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/Node-%3E%3D20-brightgreen)](https://nodejs.org/)
 
-- [x] プロジェクト骨格（package.json / tsconfig / src/tools 等）
-- [x] 略称辞書の初期版（6分野、約150語）
-- [ ] e-Gov法令API v2 クライアント
-- [ ] `get_law` / `search_law` / `get_toc` の実装
-- [ ] `search_fulltext`（bulkDL + SQLite FTS5）
-- [ ] 拡張レイヤ I/F の確定
-- [ ] 2週間の痛点ログ → MVP機能スコープ確定
+**Phase 0（スケルトン整備）完了** — 2026-04-23
 
-詳細は [`docs/DESIGN.md`](docs/DESIGN.md) と [`docs/PAIN-POINTS-TEMPLATE.md`](docs/PAIN-POINTS-TEMPLATE.md) を参照。
+- [x] プロジェクト骨格（package.json / tsconfig / ESLint / Prettier / Vitest）
+- [x] 略称辞書の初期版（6分野・**162エントリ**）
+- [x] 拡張レイヤ I/F 暫定版（`ExtensionFactory`）
+- [x] DISCLAIMER / CONTRIBUTING / 業法との関係ドキュメント
+- [x] GitHub Actions CI（Node 20 / 22 マトリクス）
+- [x] テストスイート（辞書整合性・ハンドラ疎通）
+- [ ] **2週間の痛点ログ → MVP機能スコープ確定**（Phase 1 への Gate）
+- [ ] Phase 1: e-Gov法令API v2 クライアント + `get_law` / `search_law` / `get_toc` 実装
+- [ ] Phase 2: `search_fulltext`（bulkDL + SQLite FTS5）
+- [ ] Phase 3: 拡張レイヤ I/F 確定、公式拡張パッケージリリース
+
+詳細は [`docs/DESIGN.md`](docs/DESIGN.md) / [`docs/PAIN-POINTS-TEMPLATE.md`](docs/PAIN-POINTS-TEMPLATE.md) / [`CHANGELOG.md`](CHANGELOG.md) を参照。
+
+## Quick Start
+
+### ローカル開発
+
+```bash
+git clone git@github.com:shuji-bonji/houki-hub-mcp.git
+cd houki-hub-mcp
+npm install
+npm run build
+npm test
+```
+
+### ローカル開発中の動作確認（.mcp.json）
+
+```json
+{
+  "mcpServers": {
+    "houki-hub-local": {
+      "command": "node",
+      "args": ["/absolute/path/to/houki-hub-mcp/dist/index.js"]
+    }
+  }
+}
+```
+
+現時点で**実際に動く**ツールは `resolve_abbreviation` のみです（略称→正式名称の解決）。他のツールは Phase 1 で実装されます。
 
 ## なぜ作るのか
 

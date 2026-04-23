@@ -18,7 +18,8 @@ export const tools: Tool[] = [
       properties: {
         keyword: {
           type: 'string',
-          description: '検索キーワード。例: "消費税", "労働基準", "育児休業"。略称も可（例: "消法", "労基法"）',
+          description:
+            '検索キーワード。例: "消費税", "労働基準", "育児休業"。略称も可（例: "消法", "労基法"）',
         },
         law_type: {
           type: 'string',
@@ -65,12 +66,14 @@ export const tools: Tool[] = [
         format: {
           type: 'string',
           enum: [...OUTPUT_FORMATS],
-          description: '出力形式。"markdown"=条文全文（デフォルト）, "toc"=目次のみ（トークン節約）, "json"=構造化',
+          description:
+            '出力形式。"markdown"=条文全文（デフォルト）, "toc"=目次のみ（トークン節約）, "json"=構造化',
           default: 'markdown',
         },
         at: {
           type: 'string',
-          description: '時点指定。YYYY-MM-DD 形式。例: "2024-04-01" でその時点の条文を取得（e-Gov v2 対応）',
+          description:
+            '時点指定。YYYY-MM-DD 形式。例: "2024-04-01" でその時点の条文を取得（e-Gov v2 対応）',
         },
       },
       required: ['law_name'],
