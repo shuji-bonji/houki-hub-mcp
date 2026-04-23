@@ -1,0 +1,63 @@
+{
+  "name": "@shuji-bonji/jp-houki-mcp",
+  "version": "0.0.1",
+  "description": "MCP server for Japanese laws and regulations — thin e-Gov core with pluggable extension layers (tsutatsu, saiketsu, case law)",
+  "keywords": [
+    "mcp",
+    "japan",
+    "law",
+    "houki",
+    "e-gov",
+    "legal",
+    "regulation",
+    "tax",
+    "labor",
+    "accounting"
+  ],
+  "author": "shuji-bonji",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shuji-bonji/jp-houki-mcp.git"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "jp-houki-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "src/abbreviations/*.json"
+  ],
+  "scripts": {
+    "build": "tsc && node scripts/copy-assets.mjs",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --run --coverage",
+    "lint": "eslint src",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "fast-xml-parser": "^4.5.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^2.1.9",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.53.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

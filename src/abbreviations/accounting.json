@@ -1,0 +1,11 @@
+[
+  { "abbr": "会社計算規則", "formal": "会社計算規則", "law_id": null, "law_type": "MinisterialOrdinance", "domain": "accounting" },
+  { "abbr": "財規", "formal": "財務諸表等の用語、様式及び作成方法に関する規則", "law_id": null, "law_type": "MinisterialOrdinance", "domain": "accounting", "aliases": ["財務諸表等規則"] },
+  { "abbr": "連結財規", "formal": "連結財務諸表の用語、様式及び作成方法に関する規則", "law_id": null, "law_type": "MinisterialOrdinance", "domain": "accounting" },
+  { "abbr": "四半期財規", "formal": "四半期財務諸表等の用語、様式及び作成方法に関する規則", "law_id": null, "law_type": "MinisterialOrdinance", "domain": "accounting" },
+  { "abbr": "中間財規", "formal": "中間財務諸表等の用語、様式及び作成方法に関する規則", "law_id": null, "law_type": "MinisterialOrdinance", "domain": "accounting" },
+  { "abbr": "公認会計士法", "formal": "公認会計士法", "law_id": null, "law_type": "Act", "domain": "accounting" },
+  { "abbr": "税理士法", "formal": "税理士法", "law_id": null, "law_type": "Act", "domain": "accounting" },
+  { "abbr": "会計検査院法", "formal": "会計検査院法", "law_id": null, "law_type": "Act", "domain": "accounting" },
+  { "abbr": "法会規", "formal": "法人の会計の公正な処理の基準に関する規則", "law_id": null, "law_type": "MinisterialOrdinance", "domain": "accounting", "note": "（通称なし・参考参照用）" }
+]
