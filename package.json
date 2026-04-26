@@ -1,6 +1,6 @@
 {
   "name": "@shuji-bonji/houki-egov-mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "MCP server for Japanese laws and regulations — e-Gov 法令API v2 client. Part of the houki-hub MCP family.",
   "keywords": [
     "mcp",
