@@ -13,6 +13,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - 大規模法令の応答サイズ対策（民法・会社法）
 - エラーメッセージの LLM 可読化向上
 
+## [0.2.0] - 2026-04-27
+
+**Architecture E への転換**。`@shuji-bonji/houki-hub-mcp` を **`@shuji-bonji/houki-egov-mcp`** にリネームし、責務を「e-Gov 法令API v2 のクライアント」に絞り込む。略称辞書は別パッケージ `@shuji-bonji/houki-abbreviations` v0.1.0 として独立。
+
+### ⚠️ Breaking Changes
+
+- **パッケージ名変更**: `@shuji-bonji/houki-hub-mcp` → **`@shuji-bonji/houki-egov-mcp`**
+- **bin 名変更**: `houki-hub-mcp` → **`houki-egov-mcp`**
+- **リポジトリ移動**: `shuji-bonji/houki-hub-mcp` → `shuji-bonji/houki-egov-mcp`
+- **ツール削除**: `explain_business_law_restriction` を削除
+  - 業法独占規定（弁護士法72条等）は egov-mcp の責務外（「使う側の注意」）と整理
+  - 後日 `.claude/skills/houki-research/` に Skill として再構築予定
+- **拡張レイヤ I/F 削除**: `src/extensions/` と `examples/ext-template/` を削除
+  - Architecture E では拡張は独立 npm パッケージ（`houki-nta-mcp` 等）として実現するため、hub 側に I/F を持つ必要がなくなった
+
+### Added
+
+- **`@shuji-bonji/houki-abbreviations` ^0.1.0 を dependency 化**
+  - 略称辞書の Single Source of Truth を独立パッケージへ移管
+  - 165 エントリの略称・通称・正式名称解決はそちら経由
+  - エントリに `category` / `source_mcp_hint` が追加されたことで、将来の houki-nta-mcp 等との連携準備完了
+- **Trusted Publisher (OIDC) で publish**
+  - `.github/workflows/publish.yml` を追加。tag push (`v*`) で自動 publish
+  - publish ジョブは Node 24（npm 11+ 同梱）を使用
+  - `--provenance` で attestation 付き publish
+
+### Changed
+
+- **`src/abbreviations/` を削除** — `@shuji-bonji/houki-abbreviations` から import
+- **`src/types/index.ts` の `AbbreviationEntry`** — houki-abbreviations から re-export（後方互換）
+- **`src/constants.ts` の `LAW_TYPE_CODES` / `Domain` / `DOMAINS` / `LawTypeCode`** — houki-abbreviations から re-export
+- **`scripts/copy-assets.mjs` 不要化** — JSON は houki-abbreviations 同梱物
+- **`package.json`**
+  - `name` / `bin` / `repository.url` を houki-egov-mcp に
+  - `files` から `src/abbreviations/*.json` を削除（dist のみ同梱）
+  - `publishConfig.access: public` を追加
+  - `build` スクリプトを `tsc` のみに簡素化
+
+### Removed
+
+- ツール `explain_business_law_restriction` と関連ナレッジ `src/knowledge/business-law-restrictions.ts`
+- 拡張レイヤ I/F `src/extensions/` 一式
+- 拡張パッケージ雛形 `examples/ext-template/`
+
+### Migration Guide
+
+旧 `@shuji-bonji/houki-hub-mcp@0.1.x` を使っていた場合:
+
+```diff
+{
+  "mcpServers": {
+-   "houki-hub": {
+-     "command": "npx",
+-     "args": ["-y", "@shuji-bonji/houki-hub-mcp"]
+-   }
++   "houki-egov": {
++     "command": "npx",
++     "args": ["-y", "@shuji-bonji/houki-egov-mcp"]
++   }
+  }
+}
+```
+
+`explain_business_law_restriction` を使っていた場合は、後日リリース予定の `houki-research` Skill か、各士業の業法を直接 `get_law` で参照する形に切り替えてください。
+
+### Status
+
+**Phase 1（e-Gov 法令API v2 コア）** + **Architecture E への移行**完了。次は:
+
+- **アクション3**: `houki-knowledge-mcp`（法令階層・業法独占）切り出し or Skill 化
+- **アクション4**: `@shuji-bonji/houki-hub` meta-package 作成
+- **アクション5**: `houki-nta-mcp` 新規開発
+
 ## [0.1.1] - 2026-04-26
 
 **e-Gov コア完成**。v0.1.0 で抜けていた `/law_revisions` エンドポイント対応を追加し、e-Gov 法令API v2 の主要機能をすべてカバーする。
@@ -147,7 +220,8 @@ Phase 0（スケルトン整備）完了リリース。
 
 **Phase 0 完了**。Phase 1 本実装の前に、**2週間の実運用痛点ログ**（`docs/PAIN-POINTS-TEMPLATE.md`）を経由して MVP スコープを確定する。
 
-[Unreleased]: https://github.com/shuji-bonji/houki-hub-mcp/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/shuji-bonji/houki-egov-mcp/releases/tag/v0.2.0
 [0.1.1]: https://github.com/shuji-bonji/houki-hub-mcp/releases/tag/v0.1.1
 [0.1.0]: https://github.com/shuji-bonji/houki-hub-mcp/releases/tag/v0.1.0
 [0.0.1]: https://github.com/shuji-bonji/houki-hub-mcp/releases/tag/v0.0.1

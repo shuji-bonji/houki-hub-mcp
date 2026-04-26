@@ -1,28 +1,14 @@
 /**
- * Shared Types
+ * Shared Types — egov-mcp 固有
+ *
+ * AbbreviationEntry は @shuji-bonji/houki-abbreviations から re-export している。
+ * Single Source of Truth はそちら。
  */
 
 import type { Domain, LawTypeCode, OutputFormat } from '../constants.js';
 
-/** 略称辞書エントリ */
-export interface AbbreviationEntry {
-  /** 略称・通称。例: "消法", "民" */
-  abbr: string;
-  /** 正式名称。例: "消費税法", "民法" */
-  formal: string;
-  /** e-Gov law_id。verified済みのもののみ格納。未確認は null */
-  law_id: string | null;
-  /** 法令番号。例: "昭和六十三年法律第百八号" */
-  law_num?: string;
-  /** 法令種別 */
-  law_type?: LawTypeCode;
-  /** 分野タグ */
-  domain: Domain;
-  /** 同義の別表記 */
-  aliases?: string[];
-  /** 備考（例: "通称: 電子帳簿保存法"） */
-  note?: string;
-}
+// houki-abbreviations から re-export（後方互換のため）
+export type { AbbreviationEntry } from '@shuji-bonji/houki-abbreviations';
 
 /** 法令検索引数 */
 export interface SearchLawArgs {

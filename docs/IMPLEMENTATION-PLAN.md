@@ -1,6 +1,6 @@
 # Implementation Plan — Phase 1〜3
 
-houki-hub-mcp の Phase 1〜3 実装計画。**決めすぎず、足場だけ確実に置く**粒度で書く。実装時に痛点ログ・利用者フィードバックで肉付けする前提。
+houki-egov-mcp の Phase 1〜3 実装計画。**決めすぎず、足場だけ確実に置く**粒度で書く。実装時に痛点ログ・利用者フィードバックで肉付けする前提。
 
 ---
 
@@ -25,7 +25,7 @@ gantt
     section Phase 3
     Extension loader :p3a, after p2c, 5d
     Manifest v1.0 freeze :p3b, after p3a, 3d
-    @houki-hub/ext-nta ref impl :p3c, after p3b, 10d
+    @houki-egov/ext-nta ref impl :p3c, after p3b, 10d
     v1.0.0 release :milestone, after p3c, 0d
 ```
 
@@ -172,7 +172,7 @@ URL: https://laws.e-gov.go.jp/law/{law_id}
 
 ### 目標
 
-**ローカル ground truth** を確立する。e-Gov XML 一括ダウンロードを取得し、SQLite FTS5 にインデックス化。これが houki-hub の最大の差別化価値。
+**ローカル ground truth** を確立する。e-Gov XML 一括ダウンロードを取得し、SQLite FTS5 にインデックス化。これが houki-egov の最大の差別化価値。
 
 ### アーキテクチャ
 
@@ -190,7 +190,7 @@ graph LR
 
 ### Bulk Downloader
 
-- 配置先：`~/.cache/houki-hub-mcp/bulk/{年月}` に分野別 zip 保存
+- 配置先：`~/.cache/houki-egov-mcp/bulk/{年月}` に分野別 zip 保存
 - 月次の更新検出：HTTP HEAD で `Last-Modified` をチェック
 - 失敗時の中断・再開（部分ダウンロード対応）
 - 進捗 stderr 出力（dot progress、`tty` 検出で抑制）
@@ -278,7 +278,7 @@ const results = await db.all(`
 
 ### 設計の核心
 
-**ローカル ground truth が houki-hub の最大の差別化**。これがあるから：
+**ローカル ground truth が houki-egov の最大の差別化**。これがあるから：
 - e-Gov が落ちても引ける
 - 特定条文が消えても検証できる
 - 分散保持で改変耐性が成立する
@@ -298,7 +298,7 @@ const results = await db.all(`
 - [ ] FTS5 スキーマ + マイグレーション
 - [ ] `search_fulltext` 本実装
 - [ ] Hybrid Strategy（`get_law` の Bulk/API 切替）
-- [ ] DB ファイル管理コマンド（`houki-hub-mcp --refresh-cache` 的なもの）
+- [ ] DB ファイル管理コマンド（`houki-egov-mcp --refresh-cache` 的なもの）
 - [ ] 単体テスト + パフォーマンステスト（10万条文での FTS5 検索 < 100ms）
 - [ ] **CHANGELOG 更新 + v0.2.0 リリース**
 
@@ -308,15 +308,15 @@ const results = await db.all(`
 
 ### 目標
 
-通達・裁決などの周辺データソースを **独立 npm パッケージ**として追加できる仕組みを完成させる。Manifest v1.0 を凍結し、リファレンス実装として `@houki-hub/ext-nta`（国税庁通達）を公開する。
+通達・裁決などの周辺データソースを **独立 npm パッケージ**として追加できる仕組みを完成させる。Manifest v1.0 を凍結し、リファレンス実装として `@houki-egov/ext-nta`（国税庁通達）を公開する。
 
 ### アーキテクチャ
 
 ```mermaid
 graph TB
-    Core[houki-hub-mcp Core] --> Loader[Extension Loader]
-    Loader -->|動的 import| Ext1[@houki-hub/ext-nta]
-    Loader -->|動的 import| Ext2[@houki-hub/ext-mhlw]
+    Core[houki-egov-mcp Core] --> Loader[Extension Loader]
+    Loader -->|動的 import| Ext1[@houki-egov/ext-nta]
+    Loader -->|動的 import| Ext2[@houki-egov/ext-mhlw]
     Loader -->|動的 import| ExtN[他者の拡張]
 
     Ext1 --> NTA[(国税庁 通達)]
@@ -367,7 +367,7 @@ Phase 3 で **breaking change なしの v1.0 manifest** を確定：
 
 ### コア → 拡張のヘルパー Export
 
-`@shuji-bonji/houki-hub-mcp/extensions` というサブパスエクスポート経由で、拡張から利用できるユーティリティを公開：
+`@shuji-bonji/houki-egov-mcp/extensions` というサブパスエクスポート経由で、拡張から利用できるユーティリティを公開：
 
 ```typescript
 // 拡張作者が import できるもの
@@ -397,16 +397,16 @@ export type {
 
 | パッケージ                | 対象                                          | 主な実務テーマ                                       |
 | ------------------------- | --------------------------------------------- | ---------------------------------------------------- |
-| `@houki-hub/ext-nta`      | 国税庁 通達・告示・Q&A                        | 電帳法・インボイス・税務全般                         |
-| `@houki-hub/ext-mhlw`     | 厚生労働省 通達・告示                         | 労務・社保                                           |
-| `@houki-hub/ext-jaish`    | 安全衛生情報センター 通達                     | 労安全衛                                             |
-| `@houki-hub/ext-saiketsu` | 国税不服審判所 公表裁決事例                   | 税務争訟                                             |
-| `@houki-hub/ext-meti`     | 経済産業省 通達・ガイドライン                 | 電子契約・下請法・産業ガイドライン                   |
-| `@houki-hub/ext-soumu`    | 総務省 通達・告示                             | 電子署名・電気通信事業・サイバーセキュリティ         |
-| `@houki-hub/ext-moj`      | 法務省 通達・通知                             | 電子契約・登記・会社法・民事                         |
-| `@houki-hub/ext-ppc`      | 個人情報保護委員会 ガイドライン・Q&A          | 個情法・マイナンバー                                 |
-| `@houki-hub/ext-fsa`      | 金融庁 監督指針                               | 金商法・資金決済・銀行・保険                         |
-| `@houki-hub/ext-court`    | 裁判所 判決検索（Stage A/B/C）                | 判例（民事中心）                                     |
+| `@houki-egov/ext-nta`      | 国税庁 通達・告示・Q&A                        | 電帳法・インボイス・税務全般                         |
+| `@houki-egov/ext-mhlw`     | 厚生労働省 通達・告示                         | 労務・社保                                           |
+| `@houki-egov/ext-jaish`    | 安全衛生情報センター 通達                     | 労安全衛                                             |
+| `@houki-egov/ext-saiketsu` | 国税不服審判所 公表裁決事例                   | 税務争訟                                             |
+| `@houki-egov/ext-meti`     | 経済産業省 通達・ガイドライン                 | 電子契約・下請法・産業ガイドライン                   |
+| `@houki-egov/ext-soumu`    | 総務省 通達・告示                             | 電子署名・電気通信事業・サイバーセキュリティ         |
+| `@houki-egov/ext-moj`      | 法務省 通達・通知                             | 電子契約・登記・会社法・民事                         |
+| `@houki-egov/ext-ppc`      | 個人情報保護委員会 ガイドライン・Q&A          | 個情法・マイナンバー                                 |
+| `@houki-egov/ext-fsa`      | 金融庁 監督指針                               | 金商法・資金決済・銀行・保険                         |
+| `@houki-egov/ext-court`    | 裁判所 判決検索（Stage A/B/C）                | 判例（民事中心）                                     |
 
 ### 拡張ツールの統一インターフェース設計
 
@@ -423,7 +423,7 @@ export type {
 - 全結果に出典 URL と取得日時を付与
 - 通達番号・告示番号の正規化（例：`所基通33-6` → `{ tsutatsu: '所基通', section: '33', sub: '6' }`）
 
-### リファレンス実装：`@houki-hub/ext-nta`
+### リファレンス実装：`@houki-egov/ext-nta`
 
 最初の公式拡張をフルに作って **拡張作者の手本にする**。
 
@@ -455,8 +455,8 @@ export type {
 
 - [ ] Extension Loader 実装（環境変数 + 動的 import + 検証）
 - [ ] Manifest v1.0 仕様凍結（CONTRIBUTING に明記）
-- [ ] `@shuji-bonji/houki-hub-mcp/extensions` sub-path export
-- [ ] `@houki-hub/ext-nta` リファレンス実装公開
+- [ ] `@shuji-bonji/houki-egov-mcp/extensions` sub-path export
+- [ ] `@houki-egov/ext-nta` リファレンス実装公開
 - [ ] 拡張作者向けドキュメント（examples/ext-template/ の更新）
 - [ ] 拡張パッケージのテストガイドライン
 - [ ] **CHANGELOG 更新 + v1.0.0 リリース**（Manifest 凍結 = 1.0 を名乗れる）
@@ -465,7 +465,7 @@ export type {
 
 ## 横断的な設計原則（全フェーズ共通）
 
-shuji-mcp-patterns 準拠 + houki-hub 固有：
+shuji-mcp-patterns 準拠 + houki-egov 固有：
 
 | 原則                          | 内容                                                            |
 | ----------------------------- | --------------------------------------------------------------- |

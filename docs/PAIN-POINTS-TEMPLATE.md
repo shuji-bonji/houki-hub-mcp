@@ -1,7 +1,7 @@
 # 痛点ログ — 2週間トライアル
 
 **期間**: 2026-04-23 〜 2026-05-07（2週間）  
-**目的**: e-shiwake / 既存 tax-law / labor-law MCP を実運用して、本当に必要な機能だけで houki-hub-mcp の MVP スコープを確定する
+**目的**: e-shiwake / 既存 tax-law / labor-law MCP を実運用して、本当に必要な機能だけで houki-egov-mcp の MVP スコープを確定する
 
 ## 使い方
 

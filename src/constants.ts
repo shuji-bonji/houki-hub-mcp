@@ -1,17 +1,13 @@
 /**
- * Shared Constants
+ * Shared Constants — egov-mcp 固有
+ *
+ * 略称辞書系の定数（LAW_TYPE_CODES / DOMAINS）は @shuji-bonji/houki-abbreviations
+ * から re-export している。Single Source of Truth はそちら。
  */
 
-/** e-Gov law_id の種別プレフィックス（例: Act=AC, CabinetOrder=CO, MinisterialOrdinance=MO） */
-export const LAW_TYPE_CODES = {
-  Act: 'AC',
-  CabinetOrder: 'CO',
-  ImperialOrdinance: 'IO',
-  MinisterialOrdinance: 'MO',
-  Rule: 'RU',
-} as const;
-
-export type LawTypeCode = keyof typeof LAW_TYPE_CODES;
+// houki-abbreviations から共有定数を re-export
+export { LAW_TYPE_CODES, DOMAINS } from '@shuji-bonji/houki-abbreviations';
+export type { LawTypeCode, Domain } from '@shuji-bonji/houki-abbreviations';
 
 /** 元号コード（e-Gov law_id の先頭1文字） */
 export const ERA_CODES = {
@@ -33,14 +29,3 @@ export const LIMITS = {
 /** 出力フォーマットの列挙 */
 export const OUTPUT_FORMATS = ['markdown', 'json', 'toc'] as const;
 export type OutputFormat = (typeof OUTPUT_FORMATS)[number];
-
-/** ドメインタグ（略称辞書の分類） */
-export const DOMAINS = [
-  'tax',
-  'labor',
-  'accounting',
-  'commercial',
-  'civil',
-  'administrative',
-] as const;
-export type Domain = (typeof DOMAINS)[number];

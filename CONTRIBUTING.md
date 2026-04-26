@@ -1,6 +1,6 @@
 # Contributing
 
-houki-hub-mcp はノンベンダーの個人 OSS MCP です。辞書・拡張パッケージ・Skill のそれぞれに貢献の経路があります。
+houki-egov-mcp はノンベンダーの個人 OSS MCP です。辞書・拡張パッケージ・Skill のそれぞれに貢献の経路があります。
 
 ## 3つの貢献経路
 
@@ -70,7 +70,7 @@ houki-hub-mcp はノンベンダーの個人 OSS MCP です。辞書・拡張パ
 
 ### 新ナレッジ領域の追加
 
-「専門家でない利用者が地形把握できないと houki-hub-mcp の有用性が下がる」領域なら、追加候補です。例：
+「専門家でない利用者が地形把握できないと houki-egov-mcp の有用性が下がる」領域なら、追加候補です。例：
 
 - 行政手続全般（申請・届出・許認可の階層）
 - 知財制度の概要（特許・商標・著作権の関係）
@@ -84,7 +84,7 @@ houki-hub-mcp はノンベンダーの個人 OSS MCP です。辞書・拡張パ
 
 ### 命名規則
 
-- パッケージ名: `@あなたのscope/houki-hub-ext-{namespace}` または `houki-hub-ext-{namespace}`
+- パッケージ名: `@あなたのscope/houki-egov-ext-{namespace}` または `houki-egov-ext-{namespace}`
 - ツール名: `{namespace}_{verb}` 形式（例: `nta_get_tsutatsu`）
 
 ### 最小実装
@@ -93,20 +93,20 @@ houki-hub-mcp はノンベンダーの個人 OSS MCP です。辞書・拡張パ
 
 ### 想定される拡張
 
-- `@houki-hub/ext-nta` — 国税庁通達
-- `@houki-hub/ext-mhlw` — 厚生労働省通達
-- `@houki-hub/ext-jaish` — 安全衛生情報センター
-- `@houki-hub/ext-saiketsu` — 国税不服審判所 公表裁決
-- `@houki-hub/ext-court` — 裁判所 判例検索
-- `@houki-hub/ext-fsa` — 金融庁 監督指針
-- `@houki-hub/ext-pref-{県名}` — 都道府県条例
-- `@houki-hub/ext-intl-{国名}` — 日本語訳付きの他国法令
+- `@houki-egov/ext-nta` — 国税庁通達
+- `@houki-egov/ext-mhlw` — 厚生労働省通達
+- `@houki-egov/ext-jaish` — 安全衛生情報センター
+- `@houki-egov/ext-saiketsu` — 国税不服審判所 公表裁決
+- `@houki-egov/ext-court` — 裁判所 判例検索
+- `@houki-egov/ext-fsa` — 金融庁 監督指針
+- `@houki-egov/ext-pref-{県名}` — 都道府県条例
+- `@houki-egov/ext-intl-{国名}` — 日本語訳付きの他国法令
 
 既存の実装がある場合（例: `kentaroajisaka/tax-law-mcp`）を**ラップして拡張パッケージ化**する選択肢もあります。その場合はオリジナル作者への謝辞を README に必ず記載してください。
 
 ## ③ Skill の作成
 
-Skill は利用者が自分のプロジェクトで書くものです。houki-hub-mcp のリポには入れません。
+Skill は利用者が自分のプロジェクトで書くものです。houki-egov-mcp のリポには入れません。
 
 ### 参考になる Skill の例
 

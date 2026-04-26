@@ -1,7 +1,7 @@
 {
-  "name": "@shuji-bonji/houki-hub-mcp",
-  "version": "0.1.1",
-  "description": "MCP server for Japanese laws and regulations — thin e-Gov core with pluggable extension layers (tsutatsu, saiketsu, case law)",
+  "name": "@shuji-bonji/houki-egov-mcp",
+  "version": "0.2.0",
+  "description": "MCP server for Japanese laws and regulations — e-Gov 法令API v2 client. Part of the houki-hub MCP family.",
   "keywords": [
     "mcp",
     "japan",
@@ -18,20 +18,22 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/shuji-bonji/houki-hub-mcp.git"
+    "url": "git+https://github.com/shuji-bonji/houki-egov-mcp.git"
   },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "houki-hub-mcp": "dist/index.js"
+    "houki-egov-mcp": "dist/index.js"
   },
   "files": [
-    "dist",
-    "src/abbreviations/*.json"
+    "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsc && node scripts/copy-assets.mjs",
+    "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "test": "vitest --run",
@@ -44,6 +46,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@shuji-bonji/houki-abbreviations": "^0.1.0",
     "fast-xml-parser": "^4.5.0"
   },
   "devDependencies": {

@@ -16,5 +16,12 @@
     "resolveJsonModule": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "src/abbreviations",
+    "src/extensions",
+    "src/knowledge/business-law-restrictions.ts"
+  ]
 }

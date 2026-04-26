@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: houki-hub-mcp の不具合報告
+about: houki-egov-mcp の不具合報告
 title: '[BUG] '
 labels: bug
 assignees: ''
@@ -22,7 +22,7 @@ assignees: ''
 
 ## 環境
 
-- houki-hub-mcp version: 
+- houki-egov-mcp version: 
 - Node.js version: 
 - OS: 
 - 呼び出し元（Claude Desktop / Cursor / Claude Code / その他）: 

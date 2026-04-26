@@ -51,11 +51,11 @@
             │ tool call
 ┌───────────▼─────────────────────────────────────┐
 │ 拡張層（独立 npm）                              │
-│  @houki-hub/ext-nta     国税庁通達               │
-│  @houki-hub/ext-mhlw    厚労省通達               │
-│  @houki-hub/ext-saiketsu 国税不服審判所裁決     │
-│  @houki-hub/ext-jaish   安全衛生通達             │
-│  @houki-hub/ext-court   判例検索（将来）         │
+│  @houki-egov/ext-nta     国税庁通達               │
+│  @houki-egov/ext-mhlw    厚労省通達               │
+│  @houki-egov/ext-saiketsu 国税不服審判所裁決     │
+│  @houki-egov/ext-jaish   安全衛生通達             │
+│  @houki-egov/ext-court   判例検索（将来）         │
 └─────────────────────────────────────────────────┘
             │ uses core
 ┌───────────▼─────────────────────────────────────┐
@@ -130,19 +130,19 @@
 
 | パッケージ                | 対象                                                              | 主な実務テーマ                                       | 想定時期 |
 | ------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------- | -------- |
-| `@houki-hub/ext-nta`      | 国税庁 基本通達・措置法通達・取扱通達・Q&A・告示                  | 電帳法・インボイス・税務全般                         | Phase 3  |
-| `@houki-hub/ext-mhlw`     | 厚生労働省 通達・告示                                             | 労務・社保                                           | Phase 3  |
-| `@houki-hub/ext-jaish`    | 安全衛生情報センター 通達                                         | 労安全衛                                             | Phase 3  |
-| `@houki-hub/ext-saiketsu` | 国税不服審判所 公表裁決事例                                       | 税務争訟                                             | Phase 3  |
-| `@houki-hub/ext-meti`     | 経済産業省 通達・告示・ガイドライン                               | 電子契約・下請法・産業ガイドライン                   | Phase 3  |
-| `@houki-hub/ext-soumu`    | 総務省 通達・告示                                                 | 電子署名・電気通信事業・サイバーセキュリティ         | Phase 3  |
-| `@houki-hub/ext-moj`      | 法務省 通達・通知                                                 | 電子契約・登記・会社法・民事                         | Phase 3  |
-| `@houki-hub/ext-ppc`      | 個人情報保護委員会 ガイドライン・Q&A                              | 個情法・マイナンバー                                 | Phase 3  |
-| `@houki-hub/ext-fsa`      | 金融庁 監督指針                                                   | 金商法・資金決済・銀行・保険                         | Phase 3  |
+| `@houki-egov/ext-nta`      | 国税庁 基本通達・措置法通達・取扱通達・Q&A・告示                  | 電帳法・インボイス・税務全般                         | Phase 3  |
+| `@houki-egov/ext-mhlw`     | 厚生労働省 通達・告示                                             | 労務・社保                                           | Phase 3  |
+| `@houki-egov/ext-jaish`    | 安全衛生情報センター 通達                                         | 労安全衛                                             | Phase 3  |
+| `@houki-egov/ext-saiketsu` | 国税不服審判所 公表裁決事例                                       | 税務争訟                                             | Phase 3  |
+| `@houki-egov/ext-meti`     | 経済産業省 通達・告示・ガイドライン                               | 電子契約・下請法・産業ガイドライン                   | Phase 3  |
+| `@houki-egov/ext-soumu`    | 総務省 通達・告示                                                 | 電子署名・電気通信事業・サイバーセキュリティ         | Phase 3  |
+| `@houki-egov/ext-moj`      | 法務省 通達・通知                                                 | 電子契約・登記・会社法・民事                         | Phase 3  |
+| `@houki-egov/ext-ppc`      | 個人情報保護委員会 ガイドライン・Q&A                              | 個情法・マイナンバー                                 | Phase 3  |
+| `@houki-egov/ext-fsa`      | 金融庁 監督指針                                                   | 金商法・資金決済・銀行・保険                         | Phase 3  |
 
 > 各拡張は **「通達・告示・Q&A・ガイドライン」を統一インターフェース**で提供する設計とする。`{ns}_search` / `{ns}_get` / `{ns}_list` の3ツールに `type: 'tsutatsu' | 'kokuji' | 'qa' | 'guideline'` を渡してフィルタする方式が望ましい（拡張作者の負担軽減 + ツール数の爆発抑制）。
 
-### `@houki-hub/ext-court`（民事判決等）
+### `@houki-egov/ext-court`（民事判決等）
 
 判決検索は **2026年度から状況が大きく変わる**ため、3段階で設計する。
 
@@ -158,9 +158,9 @@
 
 | パッケージ            | 対象                  | 想定時期 |
 | --------------------- | --------------------- | -------- |
-| `@houki-hub/ext-fsa`  | 金融庁 監督指針       | 未定     |
-| `@houki-hub/ext-pref-{県名}` | 都道府県条例    | 未定     |
-| `@houki-hub/ext-intl-{国名}` | 日本語訳付き他国法令 | 未定 |
+| `@houki-egov/ext-fsa`  | 金融庁 監督指針       | 未定     |
+| `@houki-egov/ext-pref-{県名}` | 都道府県条例    | 未定     |
+| `@houki-egov/ext-intl-{国名}` | 日本語訳付き他国法令 | 未定 |
 
 ## 開発着手前の必須工程
 
@@ -208,7 +208,7 @@ Phase 1 に入る前に、**2週間の実運用痛点ログ**（`docs/PAIN-POINT
 | レイヤ | 提供者 | 性格 |
 |---|---|---|
 | **権威** | デジタル庁公式 MCP（将来）/ LegalOn / MNTSQ | 「正しさの基準」。有資格者の監修付き、商用ライセンス |
-| **セカンドオピニオン** | houki-hub-mcp / kentaroajisaka/tax-law-mcp 等 | ノンベンダー個人 OSS。網羅性・横断性で補完 |
+| **セカンドオピニオン** | houki-egov-mcp / kentaroajisaka/tax-law-mcp 等 | ノンベンダー個人 OSS。網羅性・横断性で補完 |
 | **判断** | 有資格者（弁護士・税理士・社労士） / 利用者自身 | 最終責任 |
 
 本MCP はセカンドオピニオン層に徹することで、権威レイヤとも判断レイヤとも**競合しない**。それぞれの強みを尊重する。

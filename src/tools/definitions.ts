@@ -177,20 +177,4 @@ export const tools: Tool[] = [
       required: ['name'],
     },
   },
-  {
-    name: 'explain_business_law_restriction',
-    description:
-      '士業の業務独占規定（弁護士法72条・税理士法52条・社労士法27条 等）の制定根拠・違反要件・規制外の典型例・違反になり得る典型例を解説する。利用者が houki-hub-mcp + LLM の活用が業法に抵触しないかを判断する材料を提供する。',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: {
-          type: 'string',
-          description:
-            '士業名または法令名。例: "弁護士", "税理士", "社労士", "公認会計士", "司法書士", "行政書士", "弁理士", "弁護士法", "税理士法"',
-        },
-      },
-      required: ['name'],
-    },
-  },
 ];

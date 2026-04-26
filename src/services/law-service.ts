@@ -23,7 +23,7 @@ import {
   type TocNode,
   type LawNode,
 } from './law-tree.js';
-import { resolveAbbreviation } from '../abbreviations/index.js';
+import { resolveAbbreviation } from '@shuji-bonji/houki-abbreviations';
 import { formatArticleMarkdown, formatTocMarkdown } from '../formatters/markdown.js';
 import { LRUCache } from '../utils/cache.js';
 import { CACHE_CONFIG, EGOV_API } from '../config.js';

@@ -1,6 +1,6 @@
 # Houki Hub MCP Server
 
-> **houki-hub** — 散らばる法令領域を1点に集約する、LLM時代の汎用法令リファレンス基盤。  
+> **houki-egov** — 散らばる法令領域を1点に集約する、LLM時代の汎用法令リファレンス基盤。  
 > エンジニアと開発者が **法令の壁を素早く越えて、プロダクトの品質に専念できる** ために。
 
 日本の法令（e-Gov法令検索 / 法令API v2）を LLM から扱うための MCP サーバ。
@@ -27,7 +27,7 @@
 ```
 ┌──────────────────────┬──────────────────────┐
 │ 権威レイヤ            │ セカンドオピニオン   │
-│ デジタル庁公式 MCP    │ houki-hub-mcp         │
+│ デジタル庁公式 MCP    │ houki-egov-mcp         │
 │ LegalOn / MNTSQ 等    │ 他の個人 OSS MCP     │
 │ （正しさの基準）      │ （網羅性で補完）     │
 └──────────────────────┴──────────────────────┘
@@ -59,7 +59,7 @@
 
 ## 現状
 
-[![CI](https://github.com/shuji-bonji/houki-hub-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/shuji-bonji/houki-hub-mcp/actions/workflows/ci.yml)
+[![CI](https://github.com/shuji-bonji/houki-egov-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/shuji-bonji/houki-egov-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/Node-%3E%3D20-brightgreen)](https://nodejs.org/)
 
@@ -96,8 +96,8 @@
 ### ローカル開発
 
 ```bash
-git clone git@github.com:shuji-bonji/houki-hub-mcp.git
-cd houki-hub-mcp
+git clone git@github.com:shuji-bonji/houki-egov-mcp.git
+cd houki-egov-mcp
 npm install
 npm run build
 npm test
@@ -108,9 +108,9 @@ npm test
 ```json
 {
   "mcpServers": {
-    "houki-hub-local": {
+    "houki-egov-local": {
       "command": "node",
-      "args": ["/absolute/path/to/houki-hub-mcp/dist/index.js"]
+      "args": ["/absolute/path/to/houki-egov-mcp/dist/index.js"]
     }
   }
 }
@@ -135,12 +135,12 @@ npm test
 // .mcp.json
 {
   "mcpServers": {
-    "houki-hub": {
+    "houki-egov": {
       "command": "npx",
-      "args": ["-y", "@shuji-bonji/houki-hub-mcp"],
+      "args": ["-y", "@shuji-bonji/houki-egov-mcp"],
       "env": {
         "HOUKI_HUB_BULK_CACHE": "1",
-        "HOUKI_HUB_EXTENSIONS": "@houki-hub/ext-nta,@houki-hub/ext-mhlw"
+        "HOUKI_HUB_EXTENSIONS": "@houki-egov/ext-nta,@houki-egov/ext-mhlw"
       }
     }
   }
