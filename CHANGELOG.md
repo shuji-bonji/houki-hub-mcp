@@ -13,6 +13,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - 大規模法令の応答サイズ対策（民法・会社法）
 - エラーメッセージの LLM 可読化向上
 
+## [0.1.1] - 2026-04-26
+
+**e-Gov コア完成**。v0.1.0 で抜けていた `/law_revisions` エンドポイント対応を追加し、e-Gov 法令API v2 の主要機能をすべてカバーする。
+
+### Added
+
+- **新ツール `get_law_revisions`** — 法令の改正履歴を取得
+  - e-Gov v2 `/law_revisions/{lawId}` エンドポイントを叩く
+  - 各リビジョンの **公布日 / 施行日 / 改正法令番号 / 改正法令タイトル / 状態（現行・旧法・未施行）**を返す
+  - `latest=N` で最新N件のみに絞れる（デフォルトは全件）
+  - 略称辞書経由で law_name 解決（消法・民法等）
+- **`getLawRevisions(lawId)` 関数** を `egov-client.ts` に追加
+- **`RevisionInfo` / `EgovLawRevisionsResponse` 型** を追加
+
+### Status
+
+**v0.1.x 系列で e-Gov 法令API v2 のカバー完了**：
+- `/laws` → search_law ✓
+- `/law_data/{lawId}` → get_law / get_toc ✓
+- `/law_revisions/{lawId}` → get_law_revisions ✓ **(NEW)**
+
+これで houki-hub-mcp 単体で **e-Gov の法令系機能を全カバー**。次は v0.2.0 以降で通達系拡張パッケージ（`@houki-hub/ext-nta` 等）に進む。
+
 ## [0.1.0] - 2026-04-26
 
 **Phase 1（e-Gov 法令API v2 コア実装）完了リリース**。条文・目次取得が実 API ベースで動作する最初の実用バージョン。
@@ -124,6 +147,7 @@ Phase 0（スケルトン整備）完了リリース。
 
 **Phase 0 完了**。Phase 1 本実装の前に、**2週間の実運用痛点ログ**（`docs/PAIN-POINTS-TEMPLATE.md`）を経由して MVP スコープを確定する。
 
-[Unreleased]: https://github.com/shuji-bonji/houki-hub-mcp/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/shuji-bonji/houki-hub-mcp/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/shuji-bonji/houki-hub-mcp/releases/tag/v0.1.1
 [0.1.0]: https://github.com/shuji-bonji/houki-hub-mcp/releases/tag/v0.1.0
 [0.0.1]: https://github.com/shuji-bonji/houki-hub-mcp/releases/tag/v0.0.1

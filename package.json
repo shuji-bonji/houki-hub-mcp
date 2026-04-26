@@ -1,6 +1,6 @@
 {
   "name": "@shuji-bonji/houki-hub-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for Japanese laws and regulations — thin e-Gov core with pluggable extension layers (tsutatsu, saiketsu, case law)",
   "keywords": [
     "mcp",

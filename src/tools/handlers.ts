@@ -11,7 +11,12 @@ import {
   findBusinessLawRestriction,
   listBusinessLawProfessions,
 } from '../knowledge/business-law-restrictions.js';
-import { searchLawByKeyword, getLawArticle, getLawToc } from '../services/law-service.js';
+import {
+  searchLawByKeyword,
+  getLawArticle,
+  getLawToc,
+  getLawRevisionsByName,
+} from '../services/law-service.js';
 import type { SearchLawArgs, GetLawArgs, GetTocArgs, SearchFulltextArgs } from '../types/index.js';
 
 /**
@@ -69,6 +74,13 @@ export async function handleSearchFulltext(args: SearchFulltextArgs) {
     note: 'search_fulltext の本実装は Phase 2（bulkDL + SQLite FTS5）。現状は search_law（タイトル一致）にフォールバックしています',
     fallback,
   };
+}
+
+/**
+ * get_law_revisions — 法令の改正履歴取得（v0.1.1 で追加、e-Gov コア完成）
+ */
+export async function handleGetLawRevisions(args: { law_name: string; latest?: number }) {
+  return getLawRevisionsByName(args);
 }
 
 /**
@@ -148,6 +160,7 @@ export const toolHandlers: Record<string, (args: any) => Promise<unknown>> = {
   search_law: handleSearchLaw,
   get_law: handleGetLaw,
   get_toc: handleGetToc,
+  get_law_revisions: handleGetLawRevisions,
   search_fulltext: handleSearchFulltext,
   resolve_abbreviation: handleResolveAbbreviation,
   explain_law_type: handleExplainLawType,

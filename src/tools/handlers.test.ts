@@ -51,6 +51,10 @@ describe('Phase 1 handlers — error paths (no network)', () => {
     expect(typeof handleGetToc).toBe('function');
     expect(typeof handleSearchFulltext).toBe('function');
   });
+
+  it('toolHandlers map includes get_law_revisions', () => {
+    expect(Object.keys(toolHandlers)).toContain('get_law_revisions');
+  });
 });
 
 describe('handleExplainLawType', () => {
@@ -144,6 +148,7 @@ describe('toolHandlers map', () => {
         'explain_business_law_restriction',
         'explain_law_type',
         'get_law',
+        'get_law_revisions',
         'get_toc',
         'resolve_abbreviation',
         'search_fulltext',

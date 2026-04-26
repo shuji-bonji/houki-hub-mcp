@@ -57,6 +57,43 @@ export interface EgovLawDataResponse {
   attached_files_info?: unknown;
 }
 
+/** /law_revisions/{lawId} の単一改正履歴エントリ */
+export interface RevisionInfo {
+  law_revision_id: string;
+  law_type: string;
+  law_title: string;
+  law_title_kana?: string;
+  abbrev?: string | null;
+  category?: string;
+  updated?: string;
+  /** 改正法の公布日 */
+  amendment_promulgate_date?: string;
+  /** 改正法の施行日 */
+  amendment_enforcement_date?: string;
+  amendment_enforcement_comment?: string | null;
+  amendment_scheduled_enforcement_date?: string | null;
+  /** 改正法令の law_id */
+  amendment_law_id?: string | null;
+  /** 改正法令の正式名称 */
+  amendment_law_title?: string | null;
+  amendment_law_title_kana?: string | null;
+  /** 改正法令番号 */
+  amendment_law_num?: string | null;
+  amendment_type?: string;
+  repeal_status?: string;
+  repeal_date?: string | null;
+  remain_in_force?: boolean;
+  mission?: string;
+  /** 現在のリビジョン状態 */
+  current_revision_status?: string;
+}
+
+/** /law_revisions/{lawId} レスポンス */
+export interface EgovLawRevisionsResponse {
+  law_info: LawListItem['law_info'];
+  revisions: RevisionInfo[];
+}
+
 export interface SearchLawsParams {
   law_title?: string;
   law_type?: string;
@@ -107,6 +144,14 @@ export async function getLawData(
   const url = new URL(EGOV_API.lawData(lawId));
   if (params.at) url.searchParams.set('asof', params.at);
   return fetchJsonWithRetry<EgovLawDataResponse>(url.toString());
+}
+
+/**
+ * /law_revisions/{lawId} を叩く（改正履歴一覧）
+ */
+export async function getLawRevisions(lawId: string): Promise<EgovLawRevisionsResponse> {
+  const url = new URL(EGOV_API.lawRevisions(lawId));
+  return fetchJsonWithRetry<EgovLawRevisionsResponse>(url.toString());
 }
 
 /**

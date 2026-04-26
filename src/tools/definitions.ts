@@ -143,6 +143,25 @@ export const tools: Tool[] = [
     },
   },
   {
+    name: 'get_law_revisions',
+    description:
+      '法令の改正履歴を取得する。e-Gov v2 /law_revisions を使用。各改正の公布日・施行日・改正法令番号・状態（現行/旧法/未施行）等を返す。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        law_name: {
+          type: 'string',
+          description: '法令名または略称。例: "消費税法", "消法", "民法"',
+        },
+        latest: {
+          type: 'number',
+          description: '最新N件のみ返却（省略時は全件）。例: 5',
+        },
+      },
+      required: ['law_name'],
+    },
+  },
+  {
     name: 'explain_law_type',
     description:
       '法令種別（憲法・法律・政令・省令・規則・条例・告示・通達 等）の制定主体・階層上の位置・国民への拘束力・実務上の注意点を解説する。法務専門家でない利用者が「政令と省令の違い」「通達は守らなくていいのか」等を確認するための知識ツール。',

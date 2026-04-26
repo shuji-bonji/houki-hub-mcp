@@ -9,9 +9,11 @@
 import {
   searchLaws,
   getLawData,
+  getLawRevisions,
   EgovHttpError,
   type EgovLawDataResponse,
   type LawListItem,
+  type RevisionInfo,
 } from './egov-client.js';
 import {
   findArticle,
@@ -359,6 +361,66 @@ export interface ArticleJson {
   paragraph_num?: number;
   item_num?: number;
   node: LawNode;
+}
+
+/**
+ * get_law_revisions ツールの本実装
+ *
+ * 法令の改正履歴を取得する。
+ * - 略称→正式名解決→law_id 解決を経由
+ * - latest=N で最新N件のみ返却（デフォルトは全件）
+ */
+export async function getLawRevisionsByName(opts: { law_name: string; latest?: number }): Promise<
+  LawServiceResult<{
+    meta: ArticleMeta;
+    total: number;
+    revisions: Array<{
+      law_revision_id: string;
+      amendment_promulgate_date?: string;
+      amendment_enforcement_date?: string;
+      amendment_enforcement_comment?: string | null;
+      amendment_law_num?: string | null;
+      amendment_law_title?: string | null;
+      amendment_law_id?: string | null;
+      current_revision_status?: string;
+    }>;
+  }>
+> {
+  const resolved = await resolveLawId(opts.law_name);
+  if (!resolved) {
+    return { error: `法令が見つかりません: ${opts.law_name}` };
+  }
+  let res;
+  try {
+    res = await getLawRevisions(resolved.law_id);
+  } catch (err) {
+    const msg =
+      err instanceof EgovHttpError ? `e-Gov API error: ${err.message}` : (err as Error).message;
+    return { error: msg };
+  }
+  const all = res.revisions ?? [];
+  const trimmed = opts.latest && opts.latest > 0 ? all.slice(0, opts.latest) : all;
+  const retrievedAt = new Date().toISOString();
+  return {
+    meta: {
+      law_id: resolved.law_id,
+      title: resolved.title,
+      law_num: resolved.law_num,
+      retrieved_at: retrievedAt,
+      url: EGOV_API.publicLawUrl(resolved.law_id),
+    },
+    total: all.length,
+    revisions: trimmed.map((r: RevisionInfo) => ({
+      law_revision_id: r.law_revision_id,
+      amendment_promulgate_date: r.amendment_promulgate_date,
+      amendment_enforcement_date: r.amendment_enforcement_date,
+      amendment_enforcement_comment: r.amendment_enforcement_comment,
+      amendment_law_num: r.amendment_law_num,
+      amendment_law_title: r.amendment_law_title,
+      amendment_law_id: r.amendment_law_id,
+      current_revision_status: r.current_revision_status,
+    })),
+  };
 }
 
 /** テスト用にキャッシュをクリアする */
