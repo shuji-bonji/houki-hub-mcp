@@ -20,6 +20,8 @@ import {
   findItem,
   findParagraph,
   extractToc,
+  limitTocDepth,
+  countTocNodes,
   type TocNode,
   type LawNode,
 } from './law-tree.js';
@@ -29,6 +31,60 @@ import { LRUCache } from '../utils/cache.js';
 import { CACHE_CONFIG, EGOV_API } from '../config.js';
 import { toEgovArticleNum } from '../utils/article-num.js';
 import { logger } from '../utils/logger.js';
+import {
+  makeError,
+  isLawServiceError as _isLawServiceError,
+  NEXT_ACTIONS,
+  type LawServiceError,
+} from '../errors.js';
+
+/**
+ * EgovHttpError などの例外を、LLM 可読な LawServiceError に変換する。
+ * code / hint / next_actions / retryable を含む統一形にすることで、
+ * 呼び出し側 LLM が「次に何をすべきか」を判断しやすくする。
+ */
+function egovHttpErrorToLawError(err: unknown): LawServiceError {
+  if (err instanceof EgovHttpError) {
+    if (err.status === 429) {
+      return makeError('EGOV_RATE_LIMITED', 'e-Gov API がレート制限を返しました（429）', {
+        hint: '短時間に多数のリクエストを送るとレート制限が発動します',
+        retryable: true,
+        next_actions: [NEXT_ACTIONS.retryLater()],
+        detail: { status: err.status, url: err.url },
+      });
+    }
+    if (err.status === 0) {
+      return makeError('EGOV_TIMEOUT', 'e-Gov API がタイムアウトしました', {
+        hint: 'ネットワーク状態を確認するか、時間をおいて再試行してください',
+        retryable: true,
+        next_actions: [NEXT_ACTIONS.retryLater(), NEXT_ACTIONS.visitEgovSite()],
+        detail: { url: err.url },
+      });
+    }
+    if (err.status >= 500) {
+      return makeError(
+        'EGOV_API_ERROR',
+        `e-Gov API がサーバーエラーを返しました（${err.status}）`,
+        {
+          hint: 'e-Gov 側の一時的障害の可能性があります',
+          retryable: true,
+          next_actions: [NEXT_ACTIONS.retryLater(), NEXT_ACTIONS.visitEgovSite()],
+          detail: { status: err.status, url: err.url },
+        }
+      );
+    }
+    return makeError('EGOV_API_ERROR', `e-Gov API error: ${err.message}`, {
+      retryable: false,
+      detail: { status: err.status, url: err.url },
+    });
+  }
+  const cause = err instanceof Error ? err.message : String(err);
+  return makeError('EGOV_API_ERROR', `e-Gov API 呼び出しに失敗しました: ${cause}`, {
+    retryable: true,
+    next_actions: [NEXT_ACTIONS.retryLater()],
+    detail: { cause },
+  });
+}
 
 /** 法令本文（パース済み）のキャッシュ。キーは `${law_id}:${at ?? 'current'}` */
 const lawDataCache = new LRUCache<string, EgovLawDataResponse>(
@@ -42,16 +98,13 @@ const searchCache = new LRUCache<string, LawListItem[]>(
   CACHE_CONFIG.searchResults.name
 );
 
-/** 共通エラー型 */
-export interface LawServiceError {
-  error: string;
-  hint?: string;
-}
+/** 共通エラー型 (re-export) — 詳細は src/errors.ts */
+export type { LawServiceError } from '../errors.js';
 
 export type LawServiceResult<T> = T | LawServiceError;
 
 export function isError<T>(r: LawServiceResult<T>): r is LawServiceError {
-  return typeof r === 'object' && r !== null && 'error' in r;
+  return _isLawServiceError(r);
 }
 
 /**
@@ -124,7 +177,11 @@ export async function searchLawByKeyword(opts: {
   }>
 > {
   const trimmed = opts.keyword.trim();
-  if (!trimmed) return { error: 'keyword が空です' };
+  if (!trimmed) {
+    return makeError('INVALID_ARGUMENT', 'keyword が空です', {
+      hint: '検索したい法令名・略称・キーワード（例: "消費税", "労基"）を指定してください',
+    });
+  }
 
   // 略称が当たれば formal を使って検索
   const abbr = resolveAbbreviation(trimmed);
@@ -143,9 +200,7 @@ export async function searchLawByKeyword(opts: {
       laws = res.laws;
       searchCache.set(cacheKey, laws);
     } catch (err) {
-      const msg =
-        err instanceof EgovHttpError ? `e-Gov API error: ${err.message}` : (err as Error).message;
-      return { error: msg };
+      return egovHttpErrorToLawError(err);
     }
   }
 
@@ -186,20 +241,20 @@ export async function getLawArticle(opts: {
 > {
   const resolved = await resolveLawId(opts.law_name);
   if (!resolved) {
-    return {
-      error: `法令が見つかりません: ${opts.law_name}`,
+    return makeError('LAW_NOT_FOUND', `法令が見つかりません: ${opts.law_name}`, {
       hint: '略称辞書 / e-Gov 法令検索で該当なし。表記を確認してください',
-    };
+      next_actions: [
+        NEXT_ACTIONS.resolveAbbreviation(opts.law_name),
+        NEXT_ACTIONS.searchLaw(opts.law_name),
+      ],
+    });
   }
 
   let lawData: EgovLawDataResponse;
   try {
     lawData = await fetchLawData(resolved.law_id, opts.at);
   } catch (err) {
-    return {
-      error: `e-Gov API error: ${(err as Error).message}`,
-      hint: '時間をおいて再試行するか、e-Gov サイトで直接ご確認ください',
-    };
+    return egovHttpErrorToLawError(err);
   }
 
   const retrievedAt = new Date().toISOString();
@@ -229,10 +284,10 @@ export async function getLawArticle(opts: {
 
   // article 指定なし & json モード: メタ情報のみ
   if (!opts.article) {
-    return {
-      error: 'article（条番号）を指定してください',
+    return makeError('INVALID_ARGUMENT', 'article（条番号）を指定してください', {
       hint: '目次が必要な場合は format: "toc" を、または get_toc ツールを使ってください',
-    };
+      next_actions: [NEXT_ACTIONS.getToc(opts.law_name)],
+    });
   }
 
   // article 指定あり: 該当条文を取得
@@ -240,15 +295,21 @@ export async function getLawArticle(opts: {
   try {
     articleNum = toEgovArticleNum(opts.article);
   } catch (err) {
-    return { error: (err as Error).message };
+    return makeError('INVALID_ARTICLE_NUM', (err as Error).message, {
+      hint: '条番号は半角数字（例: "30"）または "30の2" 形式で指定してください',
+    });
   }
 
   const article = findArticle(lawData.law_full_text, articleNum);
   if (!article) {
-    return {
-      error: `条文が見つかりません: 第${opts.article}条 in ${resolved.title}`,
-      hint: '法令名・条番号を確認してください。format: "toc" で目次を確認できます',
-    };
+    return makeError(
+      'ARTICLE_NOT_FOUND',
+      `条文が見つかりません: 第${opts.article}条 in ${resolved.title}`,
+      {
+        hint: '法令名・条番号を確認してください。format: "toc" で目次を確認できます',
+        next_actions: [NEXT_ACTIONS.getToc(opts.law_name)],
+      }
+    );
   }
 
   let paragraph: LawNode | null = null;
@@ -256,12 +317,24 @@ export async function getLawArticle(opts: {
   if (opts.paragraph !== undefined) {
     paragraph = findParagraph(article, opts.paragraph);
     if (!paragraph) {
-      return { error: `項が見つかりません: 第${opts.paragraph}項 (Article ${opts.article})` };
+      return makeError(
+        'ARTICLE_NOT_FOUND',
+        `項が見つかりません: 第${opts.paragraph}項 (Article ${opts.article})`,
+        {
+          hint: '項番号は 1 始まりで指定してください。条文全体が必要なら paragraph を省略してください',
+        }
+      );
     }
     if (opts.item !== undefined) {
       item = findItem(paragraph, opts.item);
       if (!item) {
-        return { error: `号が見つかりません: 第${opts.item}号 (Paragraph ${opts.paragraph})` };
+        return makeError(
+          'ARTICLE_NOT_FOUND',
+          `号が見つかりません: 第${opts.item}号 (Paragraph ${opts.paragraph})`,
+          {
+            hint: '号番号は 1 始まりで指定してください。項全体が必要なら item を省略してください',
+          }
+        );
       }
     }
   }
@@ -302,28 +375,43 @@ export async function getLawArticle(opts: {
 
 /**
  * get_toc ツールの本実装
+ *
+ * - depth を指定すると上位 N 階層までで打ち切る（民法・会社法のような
+ *   大規模法令でレスポンスサイズを抑える用途）
+ * - depth=undefined で全階層
  */
-export async function getLawToc(opts: { law_name: string; at?: string }): Promise<
+export async function getLawToc(opts: { law_name: string; at?: string; depth?: number }): Promise<
   LawServiceResult<{
     markdown: string;
     toc: TocNode[];
     meta: ArticleMeta;
+    /** TOC ノード総数。トリミング前/後どちらの値かは truncated を見て判断 */
+    node_count: number;
+    /** depth 指定で枝を刈ったかどうか */
+    truncated: boolean;
   }>
 > {
   const resolved = await resolveLawId(opts.law_name);
   if (!resolved) {
-    return {
-      error: `法令が見つかりません: ${opts.law_name}`,
-    };
+    return makeError('LAW_NOT_FOUND', `法令が見つかりません: ${opts.law_name}`, {
+      hint: '略称辞書 / e-Gov 法令検索で該当なし。表記を確認してください',
+      next_actions: [
+        NEXT_ACTIONS.resolveAbbreviation(opts.law_name),
+        NEXT_ACTIONS.searchLaw(opts.law_name),
+      ],
+    });
   }
   let lawData: EgovLawDataResponse;
   try {
     lawData = await fetchLawData(resolved.law_id, opts.at);
   } catch (err) {
-    return { error: `e-Gov API error: ${(err as Error).message}` };
+    return egovHttpErrorToLawError(err);
   }
   const retrievedAt = new Date().toISOString();
-  const toc = extractToc(lawData.law_full_text);
+  const fullToc = extractToc(lawData.law_full_text);
+  const fullCount = countTocNodes(fullToc);
+  const toc = opts.depth && opts.depth > 0 ? limitTocDepth(fullToc, opts.depth) : fullToc;
+  const truncated = toc !== fullToc;
   const markdown = formatTocMarkdown({
     lawTitle: resolved.title,
     lawId: resolved.law_id,
@@ -342,6 +430,8 @@ export async function getLawToc(opts: { law_name: string; at?: string }): Promis
       url: EGOV_API.publicLawUrl(resolved.law_id),
       at: opts.at,
     },
+    node_count: truncated ? countTocNodes(toc) : fullCount,
+    truncated,
   };
 }
 
@@ -388,15 +478,19 @@ export async function getLawRevisionsByName(opts: { law_name: string; latest?: n
 > {
   const resolved = await resolveLawId(opts.law_name);
   if (!resolved) {
-    return { error: `法令が見つかりません: ${opts.law_name}` };
+    return makeError('LAW_NOT_FOUND', `法令が見つかりません: ${opts.law_name}`, {
+      hint: '略称辞書 / e-Gov 法令検索で該当なし。表記を確認してください',
+      next_actions: [
+        NEXT_ACTIONS.resolveAbbreviation(opts.law_name),
+        NEXT_ACTIONS.searchLaw(opts.law_name),
+      ],
+    });
   }
   let res;
   try {
     res = await getLawRevisions(resolved.law_id);
   } catch (err) {
-    const msg =
-      err instanceof EgovHttpError ? `e-Gov API error: ${err.message}` : (err as Error).message;
-    return { error: msg };
+    return egovHttpErrorToLawError(err);
   }
   const all = res.revisions ?? [];
   const trimmed = opts.latest && opts.latest > 0 ? all.slice(0, opts.latest) : all;

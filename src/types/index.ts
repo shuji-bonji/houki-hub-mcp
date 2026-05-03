@@ -38,6 +38,12 @@ export interface GetLawArgs {
 export interface GetTocArgs {
   law_name: string;
   at?: string;
+  /**
+   * 階層の打ち切り深さ。例: 1=編まで, 2=章まで, 3=節まで。
+   * 民法・会社法のような大規模法令でレスポンスサイズを抑える用途。
+   * 省略時は全階層を返す。
+   */
+  depth?: number;
 }
 
 /** 全文検索引数（bulk cache モード時のみ有効） */

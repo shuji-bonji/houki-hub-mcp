@@ -81,7 +81,8 @@ export const tools: Tool[] = [
   },
   {
     name: 'get_toc',
-    description: '法令の目次（編・章・節・条の構造）のみを取得する。トークン節約用。',
+    description:
+      '法令の目次（編・章・節・条の構造）のみを取得する。トークン節約用。depth で階層を浅く打ち切れる（民法・会社法のような大規模法令の概観把握向け）。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -92,6 +93,11 @@ export const tools: Tool[] = [
         at: {
           type: 'string',
           description: '時点指定（YYYY-MM-DD）',
+        },
+        depth: {
+          type: 'number',
+          description:
+            '構造階層の打ち切り深さ。1=編まで、2=章まで、3=節まで。省略時は全階層。例: 民法を depth=1 で取得すると「第一編 総則」「第二編 物権」のような大区分のみが返る',
         },
       },
       required: ['law_name'],

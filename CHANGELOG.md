@@ -10,8 +10,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Planned (Phase 1 磨き込み — 痛点ログ駆動)
 
 - 漢数字対応（「第三十条」を 30 に変換）
-- 大規模法令の応答サイズ対策（民法・会社法）
-- エラーメッセージの LLM 可読化向上
+- 大規模法令の応答サイズ対策の本格化（章/節単位での部分取得 API）
+- search_fulltext の SQLite FTS5 本実装（Phase 2 — bulkDL ベース）
+
+## [0.2.1] - 2026-05-03
+
+外部レビューを反映した磨き込みリリース。破壊的変更なし、すべて後方互換。
+
+### Added
+
+- **エラーレスポンスの LLM 可読化** — `src/errors.ts` を新設
+  - 統一形式 `{ error, code, hint?, next_actions?, retryable?, detail? }` を定義
+  - `LawErrorCode`: `LAW_NOT_FOUND` / `ARTICLE_NOT_FOUND` / `INVALID_ARTICLE_NUM` / `EGOV_API_ERROR` / `EGOV_TIMEOUT` / `EGOV_RATE_LIMITED` / `INVALID_ARGUMENT` / `UNKNOWN_TOOL` / `INTERNAL_ERROR`
+  - `next_actions` で「次に呼ぶべき tool」をプリセット（`resolve_abbreviation`, `search_law`, `get_toc`, `retry_later`, `visit_egov_site`）
+  - LLM が自律的に次手を選びやすくなる
+- **同時リクエスト数の制限** — `src/utils/concurrency.ts` を新設
+  - 軽量な FIFO ベース limit 関数（30行、外部依存なし）
+  - 既定 4 並列。環境変数 `HOUKI_EGOV_CONCURRENCY` で上書き可
+  - retry/backoff と二重に守ることで 429 (Rate Limited) を予防
+- **`get_toc` に `depth` パラメータ追加** — 大規模法令対策
+  - 構造階層を上位 N 階層で打ち切る（`depth=1`: 編まで、`depth=2`: 章まで、`depth=3`: 節まで）
+  - 民法・会社法のような大規模法令の概観把握でトークン節約
+  - レスポンスに `node_count` / `truncated` を追加
+- **`package.json`** — 現代的 ESM 互換性
+  - `"sideEffects": false`
+  - `"exports"` フィールドを追加
+
+### Changed
+
+- **MCP server 内部のエラー処理（`src/index.ts`）**
+  - tool handler が `LawServiceError` を返した場合、自動的に `isError: true` をセット
+  - 想定外例外は `INTERNAL_ERROR` コードに正規化
+- **`law-service.ts`** — エラー返却を `makeError(code, msg, { hint, next_actions, ... })` 形式に統一
+  - 既存の `error` / `hint` フィールドは互換性を維持（後方互換）
+- **`egov-client.ts`** — すべての fetch を `limit()` でラップ
+
+### Migration Notes
+
+すべて後方互換のため、設定変更は不要。
+
+エラーレスポンスを既存コードでパースしている場合、`error` / `hint` フィールドは互換性が保たれているが、新しい `code` / `next_actions` / `retryable` を活用するとより堅牢になる。
+
+```ts
+// 旧
+if ('error' in res) console.error(res.error);
+
+// 新（推奨）
+if (res.code === 'EGOV_RATE_LIMITED' && res.retryable) {
+  // 30秒待って再試行
+}
+```
 
 ## [0.2.0] - 2026-04-27
 

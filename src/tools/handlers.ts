@@ -14,6 +14,7 @@ import {
   getLawRevisionsByName,
 } from '../services/law-service.js';
 import type { SearchLawArgs, GetLawArgs, GetTocArgs, SearchFulltextArgs } from '../types/index.js';
+import { NEXT_ACTIONS } from '../errors.js';
 
 /**
  * search_law — 法令検索
@@ -46,11 +47,15 @@ export async function handleGetLaw(args: GetLawArgs) {
 
 /**
  * get_toc — 目次取得
+ *
+ * depth を指定すると上位 N 階層までで打ち切る。
+ * 民法・会社法のような大規模法令で TOC が肥大化する場合のサイズ対策。
  */
 export async function handleGetToc(args: GetTocArgs) {
   return getLawToc({
     law_name: args.law_name,
     at: args.at,
+    depth: args.depth,
   });
 }
 
@@ -85,10 +90,14 @@ export async function handleGetLawRevisions(args: { law_name: string; latest?: n
 export async function handleResolveAbbreviation(args: { abbr: string }) {
   const result = resolveAbbreviation(args.abbr);
   if (!result) {
+    // ABBREVIATION_NOT_FOUND は致命的ではないため、エラー応答ではなく
+    // 既存の {abbr, resolved: null, note} 形を維持して後方互換を保つ。
+    // ただし next_actions を付け、LLM が次に search_law を試せるようにする。
     return {
       abbr: args.abbr,
       resolved: null,
       note: '辞書に該当なし。フル法令名でお試しください',
+      next_actions: [NEXT_ACTIONS.searchLaw(args.abbr)],
     };
   }
   return {
@@ -106,11 +115,19 @@ export async function handleResolveAbbreviation(args: { abbr: string }) {
 export async function handleExplainLawType(args: { name: string }) {
   const entry = findLawHierarchy(args.name);
   if (!entry) {
+    // 既存形を維持（テストとの後方互換）。next_actions のみ補足。
     return {
       name: args.name,
       found: false,
       hint: `知らない法令種別です。試せる名前: ${listLawHierarchyNames().join(', ')}`,
       see_also: 'docs/LAW-HIERARCHY.md',
+      next_actions: [
+        {
+          action: 'list_known_law_types',
+          reason: '知られている法令種別は次のとおり',
+          example: { names: listLawHierarchyNames() },
+        },
+      ],
     };
   }
   return {

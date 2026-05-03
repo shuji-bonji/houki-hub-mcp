@@ -10,6 +10,8 @@ import {
   getArticleTitle,
   extractToc,
   getLawTitle,
+  limitTocDepth,
+  countTocNodes,
 } from './law-tree.js';
 import type { LawNode } from './egov-client.js';
 
@@ -207,5 +209,109 @@ describe('findChildByTag / findChildrenByTag', () => {
       ],
     };
     expect(findChildrenByTag(node, 'A').length).toBe(2);
+  });
+});
+
+// 大規模法令を想定した深い階層フィクスチャ（Part > Chapter > Section > Article）
+const deepFixture: LawNode = {
+  tag: 'Law',
+  children: [
+    {
+      tag: 'LawBody',
+      children: [
+        { tag: 'LawTitle', children: ['深い法令'] },
+        {
+          tag: 'MainProvision',
+          children: [
+            {
+              tag: 'Part',
+              attr: { Num: '1' },
+              children: [
+                { tag: 'PartTitle', children: ['第一編 総則'] },
+                {
+                  tag: 'Chapter',
+                  attr: { Num: '1' },
+                  children: [
+                    { tag: 'ChapterTitle', children: ['第一章 通則'] },
+                    {
+                      tag: 'Section',
+                      attr: { Num: '1' },
+                      children: [
+                        { tag: 'SectionTitle', children: ['第一節 X'] },
+                        {
+                          tag: 'Article',
+                          attr: { Num: '1' },
+                          children: [{ tag: 'ArticleTitle', children: ['第一条'] }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+describe('limitTocDepth', () => {
+  it('depth=1 keeps only the top structural level (Part)', () => {
+    const toc = extractToc(deepFixture);
+    const limited = limitTocDepth(toc, 1);
+    expect(limited.length).toBe(1);
+    expect(limited[0].tag).toBe('Part');
+    expect(limited[0].children).toEqual([]);
+  });
+
+  it('depth=2 keeps Part and Chapter', () => {
+    const toc = extractToc(deepFixture);
+    const limited = limitTocDepth(toc, 2);
+    const part = limited[0];
+    expect(part.tag).toBe('Part');
+    expect(part.children).toHaveLength(1);
+    expect(part.children[0].tag).toBe('Chapter');
+    expect(part.children[0].children).toEqual([]);
+  });
+
+  it('depth=3 keeps down to Section (Article still trimmed off Section)', () => {
+    const toc = extractToc(deepFixture);
+    const limited = limitTocDepth(toc, 3);
+    const section = limited[0].children[0].children[0];
+    expect(section.tag).toBe('Section');
+    expect(section.children).toEqual([]);
+  });
+
+  it('depth >= structural depth keeps everything (Article preserved)', () => {
+    const toc = extractToc(deepFixture);
+    const limited = limitTocDepth(toc, 4);
+    const section = limited[0].children[0].children[0];
+    expect(section.children[0].tag).toBe('Article');
+  });
+
+  it('invalid depth (<= 0) returns the input unchanged', () => {
+    const toc = extractToc(deepFixture);
+    expect(limitTocDepth(toc, 0)).toBe(toc);
+    expect(limitTocDepth(toc, -1)).toBe(toc);
+  });
+
+  it('does not mutate the original TOC', () => {
+    const toc = extractToc(deepFixture);
+    const before = JSON.stringify(toc);
+    limitTocDepth(toc, 1);
+    expect(JSON.stringify(toc)).toBe(before);
+  });
+});
+
+describe('countTocNodes', () => {
+  it('counts every node including children', () => {
+    const toc = extractToc(deepFixture);
+    // Part(1) + Chapter(1) + Section(1) + Article(1) = 4
+    expect(countTocNodes(toc)).toBe(4);
+  });
+
+  it('returns 0 for an empty TOC', () => {
+    expect(countTocNodes([])).toBe(0);
   });
 });

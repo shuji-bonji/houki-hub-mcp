@@ -167,6 +167,53 @@ function walkToc(node: LawNode, parent: TocNode[]): void {
 }
 
 /**
+ * TOC を指定階層までで打ち切る（大規模法令のレスポンスサイズ対策）。
+ *
+ * - depth=1: 最上位（編 or 章）のみ
+ * - depth=2: 章/節まで（編 → 章 を含む）
+ * - depth=N: 階層 N まで（その下の Article やサブ階層は省く）
+ *
+ * Article は構造階層と独立してリーフ扱いされるため、現在の階層数の判定は
+ * STRUCTURAL_TAGS 出現回数のみで行う（Article の有無は depth に影響しない）。
+ *
+ * 切り捨てた階層は children: [] になる。元の TOC は変更しない（純粋関数）。
+ */
+export function limitTocDepth(toc: TocNode[], depth: number): TocNode[] {
+  if (!Number.isFinite(depth) || depth < 1) {
+    // depth=0 以下は意味なし → 入力をそのまま返す
+    return toc;
+  }
+  const visit = (nodes: TocNode[], remaining: number): TocNode[] => {
+    return nodes.map((n) => {
+      // Article はそのまま残す（構造階層を消費しない）
+      const isStructural = STRUCTURAL_TAGS.includes(n.tag);
+      const next = isStructural ? remaining - 1 : remaining;
+      if (next <= 0) {
+        // 構造階層をこれ以上下に降りない → children を切り捨てる
+        return { ...n, children: [] };
+      }
+      return { ...n, children: visit(n.children, next) };
+    });
+  };
+  return visit(toc, depth);
+}
+
+/**
+ * TOC ツリー全体のノード数を数える（サイズ感の判定用）。
+ */
+export function countTocNodes(toc: TocNode[]): number {
+  let n = 0;
+  const walk = (nodes: TocNode[]) => {
+    for (const node of nodes) {
+      n++;
+      walk(node.children);
+    }
+  };
+  walk(toc);
+  return n;
+}
+
+/**
  * Law ツリーから法令タイトルを抽出（LawBody/LawTitle）。
  */
 export function getLawTitle(root: LawNode): string {

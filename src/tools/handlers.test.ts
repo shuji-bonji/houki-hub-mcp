@@ -29,6 +29,13 @@ describe('handleResolveAbbreviation', () => {
     expect(r.note).toContain('辞書に該当なし');
   });
 
+  it('unknown input also returns next_actions hint to call search_law', async () => {
+    const r = (await handleResolveAbbreviation({ abbr: '存在しない法律' })) as {
+      next_actions?: Array<{ action: string }>;
+    };
+    expect(r.next_actions?.[0]?.action).toBe('search_law');
+  });
+
   it('returned entry includes new fields (category, source_mcp_hint) from houki-abbreviations', async () => {
     const r = (await handleResolveAbbreviation({ abbr: '消法' })) as {
       resolved: { category: string; source_mcp_hint: string } | null;
@@ -50,6 +57,16 @@ describe('Phase 1 handlers — error paths (no network)', () => {
   it('search_law returns error for empty keyword', async () => {
     const r = (await handleSearchLaw({ keyword: '' })) as { error?: string };
     expect(r.error).toBeTruthy();
+  });
+
+  it('search_law returns LLM-readable error shape (code + hint) for empty keyword', async () => {
+    const r = (await handleSearchLaw({ keyword: '' })) as {
+      error: string;
+      code: string;
+      hint?: string;
+    };
+    expect(r.code).toBe('INVALID_ARGUMENT');
+    expect(r.hint).toBeTruthy();
   });
 
   it('handlers are exported as functions', () => {

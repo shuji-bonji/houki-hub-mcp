@@ -7,6 +7,13 @@
 
 import { EGOV_API, HTTP_CONFIG } from '../config.js';
 import { logger } from '../utils/logger.js';
+import { createLimit } from '../utils/concurrency.js';
+
+/**
+ * e-Gov API への同時リクエスト数を制限する。
+ * 429 を出さないための予防的制御。retry/backoff と二重に守る構成。
+ */
+const limit = createLimit(HTTP_CONFIG.concurrency);
 
 /** e-Gov の law_full_text などで使われる XML→JSON ツリー型 */
 export interface LawNode {
@@ -131,7 +138,7 @@ export async function searchLaws(params: SearchLawsParams): Promise<EgovLawSearc
       url.searchParams.set(k, String(v));
     }
   }
-  return fetchJsonWithRetry<EgovLawSearchResponse>(url.toString());
+  return limit(() => fetchJsonWithRetry<EgovLawSearchResponse>(url.toString()));
 }
 
 /**
@@ -143,7 +150,7 @@ export async function getLawData(
 ): Promise<EgovLawDataResponse> {
   const url = new URL(EGOV_API.lawData(lawId));
   if (params.at) url.searchParams.set('asof', params.at);
-  return fetchJsonWithRetry<EgovLawDataResponse>(url.toString());
+  return limit(() => fetchJsonWithRetry<EgovLawDataResponse>(url.toString()));
 }
 
 /**
@@ -151,7 +158,7 @@ export async function getLawData(
  */
 export async function getLawRevisions(lawId: string): Promise<EgovLawRevisionsResponse> {
   const url = new URL(EGOV_API.lawRevisions(lawId));
-  return fetchJsonWithRetry<EgovLawRevisionsResponse>(url.toString());
+  return limit(() => fetchJsonWithRetry<EgovLawRevisionsResponse>(url.toString()));
 }
 
 /**

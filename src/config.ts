@@ -50,6 +50,12 @@ export const HTTP_CONFIG = {
   userAgent: `${PACKAGE_INFO.name}/${PACKAGE_INFO.version}`,
   timeout: 30000,
   maxRetries: 3,
+  /**
+   * e-Gov API への同時リクエスト数の上限。
+   * レート制限 (429) 対策。環境変数 HOUKI_EGOV_CONCURRENCY で上書き可能。
+   * 既定値 4 は実測ベース（保守的）。
+   */
+  concurrency: Number.parseInt(process.env.HOUKI_EGOV_CONCURRENCY ?? '', 10) || 4,
 } as const;
 
 /**
