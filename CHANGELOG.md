@@ -56,6 +56,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **新規 `src/services/bulk/xml-parser.test.ts`** (18 ケース) — 改暦ノ布告レベルの最小 XML / Chapter > Section 階層 / Item + Subitem / 附則 / 別表 / TOC 除外 / caption 分離 / エラー系 / メタデータ null 等を網羅
 - **fast-xml-parser** は package.json に既存 (^4.5.0)。`isArray` で繰り返し要素を array 強制するオプションを採用
 
+#### 2026-05-09 — Phase 2-2: bulk-downloader (file_section=1)
+
+- **新規 `src/services/bulk/zip-fetcher.ts`** — e-Gov bulk DL zip を取得する低レベル fetcher。全件 (file_section=1) と差分 (file_section=3) で共通利用。
+  - **`downloadZip(opts)`** — URL / dest / expectedBytes / maxRetries / onProgress / fetchImpl / signal を受ける汎用関数。`{dest}.partial` に書いてから rename する atomic 書き込み。エラー時は確実に部分ファイルを掃除
+  - **`downloadFullZip(opts)`** — `EGOV_BULK.fullDownloadUrl` を埋めるラッパ
+  - **`downloadIncrementalZip(yyyymmdd, opts)`** — `EGOV_BULK.incrementalDownloadUrl(yyyymmdd)` を埋めるラッパ
+  - **retry 戦略**: exponential backoff (1s, 2s, 4s, ...) で `BULK_CONFIG.bulkRetry` (env `HOUKI_EGOV_BULK_RETRY`、default 3) 回まで。spike §1-2 で確認した通り **HTTP Range / Accept-Ranges / ETag / Last-Modified が一切来ない**ため resume / 304 conditional GET は実装せず、失敗時は 0 から再取得
+  - **進捗通知**: `Content-Length` が来ないため `expectedBytes` (default 290 MB、PHASE2-SPIKE 実測ベース) を使った線形 ETA。`progressIntervalBytes` (default 1 MB) ごとに onProgress 発火
+  - **整合性**: 取得完了時に zip マジックバイト `PK\x03\x04` を先頭で確認、不一致なら `ZipFormatError`
+  - **AbortSignal 対応** — backoff sleep 中も即座にキャンセル可能
+  - エラー型: `BulkFetchError` (ベース) / `ZipFormatError` (zip 形式不正)
+- **`src/config.ts`** の `EGOV_BULK` に URL builder を追加: `fullDownloadUrl` / `categoryDownloadUrl(cd)` / `incrementalDownloadUrl(yyyymmdd)`
+- **新規 `src/services/bulk/zip-fetcher.test.ts`** (11 ケース) — mock fetch で正常系 / zip マジック不一致 / fetch error retry / HTTP 5xx retry / maxRetries 連続失敗 / progress 発火 / ratio 頭打ち / AbortSignal キャンセル / URL builder ラッパを網羅。実 I/O は `os.tmpdir()` 配下の一時ディレクトリで実施し afterEach で掃除
+
 ### Dependencies
 
 - **追加: `better-sqlite3 ^12.9.0`** + `@types/better-sqlite3 ^7.6.13` — Phase 2 SQLite FTS5

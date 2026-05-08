@@ -34,13 +34,24 @@ export const EGOV_API = {
 } as const;
 
 /**
- * e-Gov XML bulk download
- * Used as local-FTS source when HOUKI_HUB_BULK_CACHE=1
+ * e-Gov XML bulk download エンドポイント
+ *
+ * - file_section=1 : 全件 zip (all_xml.zip, 約 285 MB)
+ * - file_section=2 : カテゴリ別 zip (category_cd=1〜42)
+ * - file_section=3 : 日次差分 zip (update_date=YYYYMMDD, 過去 3 ヶ月)
+ *
+ * 仕様詳細: docs/PHASE2-SPIKE.md §1〜§3
  */
 export const EGOV_BULK = {
   indexUrl: 'https://laws.e-gov.go.jp/bulkdownload/',
-  /** Per-category bulk archive URL (populated at fetch time) */
-  categoryBase: 'https://laws.e-gov.go.jp/download/',
+  /** 全件 zip (file_section=1) */
+  fullDownloadUrl: 'https://laws.e-gov.go.jp/bulkdownload?file_section=1&only_xml_flag=true',
+  /** カテゴリ別 zip (file_section=2) URL builder */
+  categoryDownloadUrl: (categoryCd: number): string =>
+    `https://laws.e-gov.go.jp/bulkdownload?file_section=2&category_cd=${categoryCd}&only_xml_flag=true`,
+  /** 日次差分 zip (file_section=3) URL builder。YYYYMMDD 形式の日付を受ける */
+  incrementalDownloadUrl: (yyyymmdd: string): string =>
+    `https://laws.e-gov.go.jp/bulkdownload?file_section=3&update_date=${yyyymmdd}&only_xml_flag=true`,
 } as const;
 
 /**
