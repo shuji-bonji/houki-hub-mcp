@@ -73,7 +73,7 @@ flowchart TB
 | D | **ステータスは 2 軸** (`current_revision_status` × `repeal_status`) | follow-up §2-1 で値分布実測 |
 | E | **`mission` は使わない** | follow-up §2-4 で 100% `New` を実証 |
 | F | **FTS5 は Article 単位主 + laws 単位従** | follow-up §3-4 で 235 万 Article 規模と検索 UX のトレードオフ |
-| G | **tokenizer は houki-nta-mcp と統一** (`unicode61 remove_diacritics 0`) | family-wide consistency |
+| G | **tokenizer は houki-nta-mcp と統一** (`trigram`) | family-wide consistency。`unicode61` は CJK を 1 トークン扱いするため日本語部分一致が不可、`trigram` は 3-gram で部分一致を取れる (実機で確認済み) |
 | H | **freshness 判定は houki-abbreviations v0.4.1** | houki-nta-mcp v0.9.3 で確立、再利用 |
 
 ## 3. DB schema 確定版
@@ -197,14 +197,14 @@ CREATE VIRTUAL TABLE laws_fts USING fts5(
   abbrev,
   law_num,
   category,
-  tokenize = 'unicode61 remove_diacritics 0'
+  tokenize = 'trigram'
 );
 
 CREATE VIRTUAL TABLE articles_fts USING fts5(
   article_id UNINDEXED,
   body,                                              -- body_normalized
   caption,                                           -- article_caption
-  tokenize = 'unicode61 remove_diacritics 0'
+  tokenize = 'trigram'
 );
 
 -- ===== 全 revisions のメタ (履歴) =====

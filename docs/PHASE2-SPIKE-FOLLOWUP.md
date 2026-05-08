@@ -373,6 +373,8 @@ tokenize = 'porter unicode61' + フロント側で 2-gram 化
 
 **推奨: houki-nta-mcp と同じ `unicode61 remove_diacritics 0`** で開始。e-Gov 法令検索本家も精密検索ではないので、まず動作させてから精度改善は Phase 3 以降。
 
+> **2026-05-09 訂正:** Phase 2-1 着手時に houki-nta-mcp の schema.ts を再確認したところ、実際には **`tokenize='trigram'` (SQLite ≥ 3.34 builtin)** を採用していた。`unicode61` は CJK を 1 トークン扱いするため日本語部分一致 (`MATCH '預金者'` が `'この法律は預金者を保護する'` にヒット) ができないことが実機テストで判明。Phase 2-1 で `trigram` に修正。詳細は [PHASE2-DESIGN.md §2.1 G](./PHASE2-DESIGN.md) を参照。
+
 ### 3-6. 全角ゆらぎ正規化
 
 houki-nta-mcp の Phase 5 で確立した **「DB と検索で同じ正規化を通す」** パターン (`text-normalize`) を継承。
@@ -389,7 +391,7 @@ spike + followup の結論を踏まえた DESIGN への持ち込み事項:
 4. **`remain_in_force=true` の 14 件は検索でヒット可、結果に注釈**
 5. **`/api/2/law_revisions/{lawId}` を MCP の `get_law_revisions` ツールに直結**（spike §6.4 の `revision_id` 主キーと整合）
 6. **FTS5 は laws_fts (法令メタ) + articles_fts (条本文) の 2 段構成**
-7. **tokenizer は `unicode61 remove_diacritics 0` から開始**、houki-nta-mcp と同じ
+7. ~~**tokenizer は `unicode61 remove_diacritics 0` から開始**、houki-nta-mcp と同じ~~ → **訂正: `trigram` を採用** (Phase 2-1 で実機テストで判明、§3-5 訂正参照)
 8. **width-only normalize は houki-abbreviations v0.3.0 の text-normalize を使用**（family 共通化済み）
 9. **bulk zip は 10,205 directories だが 1 法令につき複数 revision 含む**前提で取り込みロジックを書く
 10. **進捗表示は前回成功時のサイズを `expectedBytes` として hardcode** + バイト数累積

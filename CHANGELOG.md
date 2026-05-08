@@ -7,11 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Planned (Phase 1 磨き込み — 痛点ログ駆動)
+### In progress (Phase 2 — bulk DL + SQLite FTS5)
+
+着手中。詳細は [docs/PHASE2-DESIGN.md](docs/PHASE2-DESIGN.md)。spike + follow-up 結果は [docs/PHASE2-SPIKE.md](docs/PHASE2-SPIKE.md) / [docs/PHASE2-SPIKE-FOLLOWUP.md](docs/PHASE2-SPIKE-FOLLOWUP.md)。
+
+#### 2026-05-09 — Phase 2-1: schema migration v0→v1
+
+- **新規 `src/db/schema.ts`** — Phase 2 の DB スキーマを構築する `initSchema()` を実装。
+  - `laws` (1 行 = 1 revision、PK: `law_revision_id`) — `current_revision_status` × `repeal_status` 2 軸でステータス管理。`mission` は API 上常に `New` のため列にせず `revisions_meta.raw_revision_info_json` に保管
+  - `articles` (1 行 = 1 条 or 別表) — `body` (normalized) と `body_raw` (original) を二重保存する Normalize-everywhere パターン
+  - `revisions_meta` — 全履歴 (CurrentEnforced + UnEnforced + PreviousEnforced) の API レスポンスを raw JSON で保管
+  - `sync_state` — single-row テーブル (`CHECK (id = 1)`) で bulk DL の同期状態を保持
+  - `laws_fts` (standalone) — 法令名 / 略称 / 番号 / カテゴリの FTS5 検索
+  - `articles_fts` (external content + triggers) — 条本文の FTS5 検索。articles_ai / articles_au / articles_ad で auto-sync
+  - tokenizer は houki-nta-mcp と統一して **`trigram`** (SQLite ≥ 3.34 builtin)。日本語混在テキストの N-gram 部分一致を可能にする (`unicode61` は CJK を 1 トークンとして扱うため不可)
+- **新規 `src/db/index.ts`** — `openDb()` / `closeDb()` / `defaultDbPath()`。デフォルトは `${XDG_CACHE_HOME:-~/.cache}/houki-egov-mcp/laws.db`
+- **新規 `src/db/schema.test.ts`** (12 ケース) — テーブル / カラム / CHECK 制約 / trigger / CASCADE / sync_state single-row / 冪等性を検証
+- **`src/config.ts`** に `BULK_CONFIG` を追加 (HOUKI_EGOV_DB_PATH / HOUKI_EGOV_BULK_RETRY / HOUKI_EGOV_INCREMENTAL_LIMIT_DAYS)
+
+### Dependencies
+
+- **追加: `better-sqlite3 ^12.9.0`** + `@types/better-sqlite3 ^7.6.13` — Phase 2 SQLite FTS5
+- **アップグレード: `@shuji-bonji/houki-abbreviations` を `^0.3.0` → `^0.4.1`** — freshness モジュール (StalenessLevel / 閾値定数 / 純関数) を Phase 2-10 で利用するため
+
+### Planned (Phase 1 磨き込み — 痛点ログ駆動 / Phase 2 着手前から残置)
 
 - 漢数字対応（「第三十条」を 30 に変換）
 - 大規模法令の応答サイズ対策の本格化（章/節単位での部分取得 API）
-- search_fulltext の SQLite FTS5 本実装（Phase 2 — bulkDL ベース）
 
 ## [0.3.0] - 2026-05-08
 

@@ -81,3 +81,22 @@ export const RUNTIME_FLAGS = {
   /** Enable debug logs */
   debug: process.env.DEBUG === '1' || process.env.DEBUG === 'true',
 } as const;
+
+/**
+ * Phase 2 bulk-cache configuration (PHASE2-DESIGN.md §4.1)
+ *
+ * - HOUKI_EGOV_DB_PATH: full override of cache DB path (priority over XDG)
+ * - XDG_CACHE_HOME: default base directory for cache
+ * - HOUKI_EGOV_BULK_RETRY: max retries for full-zip download (default 3)
+ * - HOUKI_EGOV_INCREMENTAL_LIMIT_DAYS: max days to look back for incremental
+ *   diff zips before falling back to full download (default 90 — 公式仕様の上限)
+ */
+export const BULK_CONFIG = {
+  /** override of cache DB path */
+  dbPath: process.env.HOUKI_EGOV_DB_PATH,
+  /** max retries on full-zip download failure */
+  bulkRetry: Number.parseInt(process.env.HOUKI_EGOV_BULK_RETRY ?? '', 10) || 3,
+  /** look-back days for incremental diff before full-DL fallback */
+  incrementalLimitDays:
+    Number.parseInt(process.env.HOUKI_EGOV_INCREMENTAL_LIMIT_DAYS ?? '', 10) || 90,
+} as const;
