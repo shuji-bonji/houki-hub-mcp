@@ -43,6 +43,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - 判定の主軸は **`last_sync_date`** (全件 DL でも incremental でも、最後の同期完了日基準)
 - **新規 `src/services/freshness.test.ts`** (12 ケース) — buildWarning の各 staleness レベル / hint 上書き、sync_state 未設定時の null、閾値境界 (`fresh_days` 前後)、outdated 警告付与、レスポンス整形の sanity check を網羅
 
+#### 2026-05-09 — Phase 2-3: XML parser
+
+- **新規 `src/services/bulk/xml-parser.ts`** — e-Gov 法令標準 XML を `ParsedLaw` 構造に変換。bulk DL zip 内の各法令 XML を ingester で読み込んで articles テーブルに格納するためのパーサ。
+  - **`parseLawXml(xml)`** — Law 属性 (Era / Year / Num / LawType / PromulgateMonth / PromulgateDay) + LawTitle (Kana / Abbrev / AbbrevKana) + LawNum + EnactStatement を抽出
+  - **本則 (MainProvision)** — Chapter / Section / Subsection / Division を再帰的に降りて Article を抽出。`chapter_path` を Title スタックで構築 (例: `第二章　預金保険機構 第一節　総則`)
+  - **附則 (SupplProvision)** — `article_num=Suppl{idx}_{原 Num}` で本則と同じ articles 配列に格納 (例: `Suppl1_1`)
+  - **別表 (AppdxTable / AppdxNote / AppdxFig / AppdxStyle)** — `article_num=Appendix{連番}` で種別跨ぎの通し番号
+  - **本文抽出** — Article 配下の Paragraph / Item / Subitem / Sentence を再帰的に flatten し、Paragraph 境界で改行を入れる。ArticleCaption / ArticleTitle / TOC は body に含めない
+  - **`extractInlineText(node)`** — 任意ノードから全テキストを再帰的に取り出す純関数 (export 済み、テストでも利用)
+  - **`XmlParseError`** — ルート不一致 / LawBody 欠落 / LawNum 空 / 不正 XML を識別する独自エラー型
+- **新規 `src/services/bulk/xml-parser.test.ts`** (18 ケース) — 改暦ノ布告レベルの最小 XML / Chapter > Section 階層 / Item + Subitem / 附則 / 別表 / TOC 除外 / caption 分離 / エラー系 / メタデータ null 等を網羅
+- **fast-xml-parser** は package.json に既存 (^4.5.0)。`isArray` で繰り返し要素を array 強制するオプションを採用
+
 ### Dependencies
 
 - **追加: `better-sqlite3 ^12.9.0`** + `@types/better-sqlite3 ^7.6.13` — Phase 2 SQLite FTS5

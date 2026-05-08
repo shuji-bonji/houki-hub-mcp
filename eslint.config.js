@@ -24,6 +24,12 @@ export default tseslint.config(
           caughtErrorsIgnorePattern: '^_',
         },
       ],
+      // 日本法令テキストには全角スペース (U+3000) が頻出する (例: 「第一章　総則」「附　則」)。
+      // コメント・テンプレート文字列・正規表現での使用は許容する (houki-nta-mcp と統一)。
+      'no-irregular-whitespace': [
+        'error',
+        { skipComments: true, skipRegExps: true, skipTemplates: true },
+      ],
     },
   },
   {
@@ -31,6 +37,10 @@ export default tseslint.config(
     files: ['src/**/*.test.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      'no-irregular-whitespace': [
+        'error',
+        { skipComments: true, skipRegExps: true, skipTemplates: true, skipStrings: true },
+      ],
     },
   },
   {
