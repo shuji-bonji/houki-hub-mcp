@@ -70,6 +70,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **`src/config.ts`** の `EGOV_BULK` に URL builder を追加: `fullDownloadUrl` / `categoryDownloadUrl(cd)` / `incrementalDownloadUrl(yyyymmdd)`
 - **新規 `src/services/bulk/zip-fetcher.test.ts`** (11 ケース) — mock fetch で正常系 / zip マジック不一致 / fetch error retry / HTTP 5xx retry / maxRetries 連続失敗 / progress 発火 / ratio 頭打ち / AbortSignal キャンセル / URL builder ラッパを網羅。実 I/O は `os.tmpdir()` 配下の一時ディレクトリで実施し afterEach で掃除
 
+#### 2026-05-09 — Phase 2-5: ingester (zip → DB)
+
+- **新規 `src/services/bulk/zip-reader.ts`** — zip 展開を ingester から分離する `ZipReader` 抽象。
+  - `openZipFile(path)` — production 用、`unzipper.Open.file()` で streaming 展開
+  - `createMemoryZip(entries)` — テスト用 in-memory ZipReader ファクトリ
+- **新規 `src/services/bulk/ingester.ts`** — `ingestZip(opts)` で CSV + XML を 1 transaction にまとめて laws / articles / laws_fts に upsert。
+  - **`law_revision_id` を PK** にして 1 法令 = 1 revision で upsert
+  - **content_hash (SHA-256) で no-op 判定** — 同じ revision_id で本文未変更なら skip して unchanged カウント
+  - **`db.transaction()` の batch 化** (default 200 件) — 10K 法令でも 50 transaction 程度で完了
+  - **promulgation_date 計算** — XML 属性 (Era + Year + PromulgateMonth + PromulgateDay) → 西暦 ISO date 変換 (Meiji 1=1868 / Showa 1=1926 等の元号オフセットテーブル内蔵)
+  - **CSV unenforced フラグ → `current_revision_status='UnEnforced'`** に簡易マッピング (PreviousEnforced / Repeal は API 経由で精緻化、Phase 2-13 範囲)
+  - **articles の全置換** — INSERT 前に DELETE で前 revision の本文を消す (articles_fts は trigger で自動同期)
+  - **laws_fts の手動同期** — standalone 設計のため DELETE → INSERT で全置換
+  - **sync_state の upsert** — source='all_xml' の時のみ last_full_dl_at を更新 / incremental の時は既存値を維持
+  - エラー型: `IngestError` (CSV 不在 / XML パース失敗で onXmlError=throw 時)
+  - 進捗: `onProgress({ processed, total, lastLawRevisionId })` callback
+- **新規 `src/services/bulk/ingester.test.ts`** (16 ケース) — in-memory zip + in-memory DB で正常 ingest / articles_fts trigger / laws_fts 手動同期 / 未施行フラグ / content_hash no-op / content 変化で UPDATE / 複数法令 / CSV外 zip エントリの無視 / XML 不在の failed カウント / 壊れた XML の skip / onXmlError=throw / CSV 不在エラー / sync_state upsert / source 切替 (all_xml / incremental) / progress 発火を網羅
+- **依存追加**: `unzipper@^0.12.3` (本体) + `@types/unzipper@^0.10.10` (型) — 285 MB zip でも streaming 展開できる
+- **設計判断 (PHASE2-DESIGN.md §5.1 / FOLLOWUP §2 反映)**:
+  - PreviousEnforced / Repeal の精緻化は本フェーズ範囲外 (API enrichment へ)
+  - `revisions_meta` テーブルへの履歴挿入は本フェーズ範囲外 (`/api/2/law_revisions/{lawId}` 経由で Phase 2-13 で対応)
+  - `category` は CSV 列に無く、API レスポンスにのみあるので Phase 2-13 で埋める
+
 ### Dependencies
 
 - **追加: `better-sqlite3 ^12.9.0`** + `@types/better-sqlite3 ^7.6.13` — Phase 2 SQLite FTS5
