@@ -34,6 +34,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - 和暦テキスト (列 6/9/10) は raw 文字列として保持 (API v2 ISO 形式を ingester で採用するため、ここではパースしない)
 - **新規 `src/services/bulk/csv-parser.test.ts`** (21 ケース) — BOM / CRLF / クォート / エスケープ / 旧法令名の CSV-in-CSV / 未施行フラグ / 列数不一致 / skipMalformed / Buffer 入力 / revision_id 抽出 を網羅
 
+#### 2026-05-09 — Phase 2-10: freshness 計算
+
+- **新規 `src/services/freshness.ts`** — houki-nta-mcp v0.9.3 と同パターンで `@shuji-bonji/houki-abbreviations` v0.4.1+ の `StalenessLevel` / `STALENESS_THRESHOLDS` / `judgeStaleness` / `computeDaysSince` を import。
+  - `FreshnessInfo` インタフェース — sync_state.last_sync_date / last_full_dl_at と staleness / days_since_sync / warning を保持
+  - `summarizeFreshness(db, hint?, nowMs?)` — sync_state テーブル (single-row) から FreshnessInfo を構築。sync_state がない (初回 DL 前) は null を返す
+  - `buildWarning(staleness, daysSince, hint?)` — outdated 時のみ「`bulk-download-incremental` を実行」案内メッセージを生成 (MCP 固有の文言は本ファイルに残す)
+  - 判定の主軸は **`last_sync_date`** (全件 DL でも incremental でも、最後の同期完了日基準)
+- **新規 `src/services/freshness.test.ts`** (12 ケース) — buildWarning の各 staleness レベル / hint 上書き、sync_state 未設定時の null、閾値境界 (`fresh_days` 前後)、outdated 警告付与、レスポンス整形の sanity check を網羅
+
 ### Dependencies
 
 - **追加: `better-sqlite3 ^12.9.0`** + `@types/better-sqlite3 ^7.6.13` — Phase 2 SQLite FTS5
