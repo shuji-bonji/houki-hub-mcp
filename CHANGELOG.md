@@ -25,6 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **新規 `src/db/schema.test.ts`** (12 ケース) — テーブル / カラム / CHECK 制約 / trigger / CASCADE / sync_state single-row / 冪等性を検証
 - **`src/config.ts`** に `BULK_CONFIG` を追加 (HOUKI_EGOV_DB_PATH / HOUKI_EGOV_BULK_RETRY / HOUKI_EGOV_INCREMENTAL_LIMIT_DAYS)
 
+#### 2026-05-09 — Phase 2-4: CSV parser (all_law_list.csv)
+
+- **新規 `src/services/bulk/csv-parser.ts`** — bulk zip 同梱の `all_law_list.csv` (UTF-8 BOM, CRLF, 14 列) を `AllLawListRow[]` に変換。差分 zip 内の `R{YY}{MM}{DD}.csv` も同形式なので両方で利用される。
+  - `parseCsv()` — RFC 4180 互換の state-machine CSV パーサ。BOM 除去 / CRLF・LF 両対応 / クォート内コンマ・改行・エスケープ `""` を扱う
+  - `extractLawRevisionId()` — 列 13「本文 URL」末尾セグメント (`{YYYYMMDD}_{amendmentLawId}`) を抽出して `law_revision_id = {law_id}_{enforcement_date}_{amendment_law_id}` を構成 (PK 候補)
+  - `parseAllLawList()` — 列数チェック / `skipMalformed` オプション / 派生フィールド計算
+  - 和暦テキスト (列 6/9/10) は raw 文字列として保持 (API v2 ISO 形式を ingester で採用するため、ここではパースしない)
+- **新規 `src/services/bulk/csv-parser.test.ts`** (21 ケース) — BOM / CRLF / クォート / エスケープ / 旧法令名の CSV-in-CSV / 未施行フラグ / 列数不一致 / skipMalformed / Buffer 入力 / revision_id 抽出 を網羅
+
 ### Dependencies
 
 - **追加: `better-sqlite3 ^12.9.0`** + `@types/better-sqlite3 ^7.6.13` — Phase 2 SQLite FTS5
