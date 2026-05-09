@@ -93,6 +93,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - `revisions_meta` テーブルへの履歴挿入は本フェーズ範囲外 (`/api/2/law_revisions/{lawId}` 経由で Phase 2-13 で対応)
   - `category` は CSV 列に無く、API レスポンスにのみあるので Phase 2-13 で埋める
 
+#### 2026-05-09 — Phase 2-6: CLI (`--bulk-download-everything` / `--status`)
+
+- **新規 `src/cli/index.ts`** — `houki-egov-mcp` バイナリの CLI モード。引数なしで起動した場合は MCP server (既存挙動) で常駐、フラグ付きで起動した場合は CLI ハンドラを実行して exit する。
+  - **`--bulk-download-everything`** — `downloadFullZip` → `openZipFile` → `ingestZip` の一連を実行。所要時間 / DL バイト / ingest 件数を stderr に表示
+  - **`--bulk-download-by-date YYYYMMDD`** — 単日差分 zip の DL + ingest (デバッグ用)
+  - **`--status`** — `defaultDbPath()` の DB を開いて laws / articles 件数 + `summarizeFreshness()` の結果を表示。DB 未作成なら案内メッセージ
+  - **`--version` / `--help` / `-h` / `-v`** — 標準フラグ
+  - 進捗は stderr に上書き表示 (DL 中の bytes / ratio、ingest 中の処理済み法令数)
+  - 未知のフラグは exitCode=2 + ヘルプ表示
+  - 引数なしは `__not_cli__` を返し、`src/index.ts` が MCP server へフォールバック
+- **`src/index.ts`** に `runCli` の dispatch を追加。CLI コマンドが命中した場合は MCP server を起動せず CLI exit code で終了
+- **新規 `src/cli/index.test.ts`** (9 ケース) — 引数解析の早期 exit パスを網羅 (--help / --version / 不正な --bulk-download-by-date / 未知フラグ / MCP fallback の真偽)。実 bulk DL は走らせない
+- **`package.json` の build script に `chmod +x dist/index.js` を追加** — houki-nta-mcp と統一。これがないと `./dist/index.js --status` 等の直接実行で `permission denied` になる
+
 ### Dependencies
 
 - **追加: `better-sqlite3 ^12.9.0`** + `@types/better-sqlite3 ^7.6.13` — Phase 2 SQLite FTS5

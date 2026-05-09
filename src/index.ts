@@ -3,6 +3,10 @@
 /**
  * JP-Houki MCP Server
  * Japanese laws and regulations MCP — thin e-Gov core with pluggable extensions
+ *
+ * Phase 2-6 で CLI モードを追加。`--bulk-download-everything` / `--status` 等の
+ * フラグで起動した場合は CLI ハンドラを実行し exit する。引数なしの場合は
+ * MCP server として stdio に常駐する。
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -14,6 +18,7 @@ import { toolHandlers } from './tools/handlers.js';
 import { PACKAGE_INFO } from './config.js';
 import { logger } from './utils/logger.js';
 import { makeError, isLawServiceError, NEXT_ACTIONS } from './errors.js';
+import { runCli, shouldFallbackToMcp } from './cli/index.js';
 
 // Server instance
 const server = new Server(
@@ -91,8 +96,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-// Start server
+// Start server (or run CLI command, depending on argv)
 async function main() {
+  // 1) CLI mode: bulk DL / status / help / version
+  const cliResult = await runCli(process.argv);
+  if (!shouldFallbackToMcp(cliResult)) {
+    process.exit(cliResult.exitCode);
+  }
+
+  // 2) MCP server mode (default — argv なし)
   const transport = new StdioServerTransport();
   await server.connect(transport);
   logger.info('server', `${PACKAGE_INFO.name} v${PACKAGE_INFO.version} started`);
