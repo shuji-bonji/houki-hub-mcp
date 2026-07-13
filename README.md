@@ -83,24 +83,43 @@ npm test
   → explain_law_type(name="政令")
 ```
 
+## CLI（ローカル DB の構築 — v0.3.1+）
+
+全文検索用のローカル DB（SQLite FTS5）は、e-Gov の bulk ダウンロード zip から構築します。MCP server として常駐する通常起動とは別に、フラグ付きで起動すると CLI モードで動作します。
+
+```bash
+# 全法令 zip (約 290 MB) を DL して DB に取り込む
+npx @shuji-bonji/houki-egov-mcp --bulk-download-everything
+
+# DB の件数と鮮度 (freshness) を表示
+npx @shuji-bonji/houki-egov-mcp --status
+```
+
+DB のデフォルト配置は `${XDG_CACHE_HOME:-~/.cache}/houki-egov-mcp/laws.db`（`HOUKI_EGOV_DB_PATH` で変更可）。
+
+> **注**: v0.3.1 時点で DB は取り込みまで。`search_fulltext` ツールから FTS5 を引くのは Phase 2-7（次リリース）です。現状の `search_fulltext` は `search_law`（タイトル一致）にフォールバックします。
+
 ## 状態
 
-**v0.2.0 (2026-04-27)**
+**v0.3.1 (2026-07-14)**
 
 - [x] e-Gov 法令API v2 クライアント（`searchLaws` / `getLawData` / `getLawRevisions`）
 - [x] 法令ツリー走査（条/項/号、目次抽出）+ LRU cache
 - [x] 7ツール本実装
-- [x] 略称辞書を [`@shuji-bonji/houki-abbreviations`](https://github.com/shuji-bonji/houki-abbreviations) ^0.1.0 に分離
+- [x] 略称辞書を [`@shuji-bonji/houki-abbreviations`](https://github.com/shuji-bonji/houki-abbreviations) ^0.4.1 に分離
 - [x] 法令階層ナレッジ（憲法・法律・政令・省令・規則・条例・告示・訓令・通達・通知 の10種別）
+- [x] houki-hub family 共通の error contract（`SOURCE_*` / `OUT_OF_SCOPE`）に準拠
+- [x] Phase 2 基盤：bulk DL → SQLite FTS5 の取り込みパイプライン（schema / CSV・XML parser / zip fetcher / ingester / freshness / CLI）
 - [x] Trusted Publisher (OIDC) で publish
-- [x] テストスイート（**50 tests**）
+- [x] テストスイート（**193 tests**）
 
 ### 計画中
 
-- [ ] Phase 2: `search_fulltext` 本実装（bulkDL + SQLite FTS5）
+- [ ] Phase 2-7: `search_fulltext` を FTS5 バックエンドに接続（現状は `search_law` にフォールバック）
+- [ ] Phase 2-8: 差分同期（`--bulk-download-incremental`）
+- [ ] Phase 2-13: API enrichment（`category` / 改正履歴 / 廃止ステータスの精緻化）
 - [ ] 漢数字対応（「第三十条」を 30 に変換）
 - [ ] 大規模法令の応答サイズ対策（民法・会社法）
-- [ ] エラーメッセージの LLM 可読化向上
 
 ## houki-hub MCP family
 

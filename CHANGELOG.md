@@ -7,9 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### In progress (Phase 2 — bulk DL + SQLite FTS5)
+### In progress (Phase 2 — 残作業)
 
-着手中。詳細は [docs/PHASE2-DESIGN.md](docs/PHASE2-DESIGN.md)。spike + follow-up 結果は [docs/PHASE2-SPIKE.md](docs/PHASE2-SPIKE.md) / [docs/PHASE2-SPIKE-FOLLOWUP.md](docs/PHASE2-SPIKE-FOLLOWUP.md)。
+- Phase 2-7: `search_fulltext` を FTS5 バックエンドに接続（現状はまだ `search_law` フォールバックのまま）
+- Phase 2-13: API enrichment（`category` / `revisions_meta` / PreviousEnforced・Repeal の精緻化）
+- Phase 2-8: 差分同期 (`--bulk-download-incremental`) の日次ループ
+
+### Planned (Phase 1 磨き込み — 痛点ログ駆動 / Phase 2 着手前から残置)
+
+- 漢数字対応（「第三十条」を 30 に変換）
+- 大規模法令の応答サイズ対策の本格化（章/節単位での部分取得 API）
+
+## [0.3.1] - 2026-07-14
+
+**Phase 2 基盤リリース** — bulk DL + SQLite FTS5 の取り込みパイプライン一式（schema / CSV parser / XML parser / zip fetcher / ingester / freshness / CLI）を実装。
+
+MCP ツールの応答は本リリースでは変わりません（`search_fulltext` は引き続き `search_law` へのフォールバック）。FTS5 バックエンドへの接続は次リリース（Phase 2-7）で行います。ローカル DB は新 CLI `houki-egov-mcp --bulk-download-everything` で構築でき、`--status` で件数と鮮度を確認できます。
+
+詳細は [docs/PHASE2-DESIGN.md](docs/PHASE2-DESIGN.md)。spike + follow-up 結果は [docs/PHASE2-SPIKE.md](docs/PHASE2-SPIKE.md) / [docs/PHASE2-SPIKE-FOLLOWUP.md](docs/PHASE2-SPIKE-FOLLOWUP.md)。
+
+### Added
 
 #### 2026-05-09 — Phase 2-1: schema migration v0→v1
 
@@ -111,11 +128,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **追加: `better-sqlite3 ^12.9.0`** + `@types/better-sqlite3 ^7.6.13` — Phase 2 SQLite FTS5
 - **アップグレード: `@shuji-bonji/houki-abbreviations` を `^0.3.0` → `^0.4.1`** — freshness モジュール (StalenessLevel / 閾値定数 / 純関数) を Phase 2-10 で利用するため
+- **追加: `unzipper ^0.12.3`** + `@types/unzipper ^0.10.10` — 285 MB の bulk zip を streaming 展開するため
+- **追加: `fast-xml-parser ^4.5.0`** — 法令標準 XML のパースに使用
 
-### Planned (Phase 1 磨き込み — 痛点ログ駆動 / Phase 2 着手前から残置)
+### Tests
 
-- 漢数字対応（「第三十条」を 30 に変換）
-- 大規模法令の応答サイズ対策の本格化（章/節単位での部分取得 API）
+- **50 tests → 193 tests (14 files)** — Phase 2 の各モジュール (schema / csv-parser / xml-parser / zip-fetcher / ingester / freshness / cli) を網羅
 
 ## [0.3.0] - 2026-05-08
 
@@ -397,7 +415,10 @@ Phase 0（スケルトン整備）完了リリース。
 
 **Phase 0 完了**。Phase 1 本実装の前に、**2週間の実運用痛点ログ**（`docs/PAIN-POINTS-TEMPLATE.md`）を経由して MVP スコープを確定する。
 
-[Unreleased]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/shuji-bonji/houki-egov-mcp/releases/tag/v0.2.0
 [0.1.1]: https://github.com/shuji-bonji/houki-hub-mcp/releases/tag/v0.1.1
 [0.1.0]: https://github.com/shuji-bonji/houki-hub-mcp/releases/tag/v0.1.0
