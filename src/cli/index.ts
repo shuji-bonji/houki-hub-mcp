@@ -12,20 +12,19 @@
  * 設計詳細: docs/PHASE2-DESIGN.md §4
  */
 
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
 import { mkdtemp, rm } from 'node:fs/promises';
-
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { PACKAGE_INFO } from '../config.js';
+import { closeDb, defaultDbPath, openDb } from '../db/index.js';
+import { type IngestResult, ingestZip } from '../services/bulk/ingester.js';
 import {
+  type BulkProgress,
   downloadFullZip,
   downloadIncrementalZip,
-  type BulkProgress,
 } from '../services/bulk/zip-fetcher.js';
-import { ingestZip, type IngestResult } from '../services/bulk/ingester.js';
 import { openZipFile } from '../services/bulk/zip-reader.js';
 import { summarizeFreshness } from '../services/freshness.js';
-import { openDb, closeDb, defaultDbPath } from '../db/index.js';
-import { PACKAGE_INFO } from '../config.js';
 
 /** CLI ハンドラの戻り値 */
 export interface CliResult {
@@ -196,7 +195,7 @@ async function runStatus(): Promise<CliResult> {
   console.log(`[status] ${PACKAGE_INFO.name} v${PACKAGE_INFO.version}`);
   console.log(`  DB: ${dbPath}`);
 
-  let db;
+  let db: ReturnType<typeof openDb>;
   try {
     db = openDb(dbPath);
   } catch (err) {

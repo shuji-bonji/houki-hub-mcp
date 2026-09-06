@@ -1,19 +1,19 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import type { LawNode } from './egov-client.js';
 import {
+  countTocNodes,
   extractText,
+  extractToc,
   findArticle,
-  findParagraph,
-  findItem,
   findChildByTag,
   findChildrenByTag,
+  findItem,
+  findParagraph,
   getArticleCaption,
   getArticleTitle,
-  extractToc,
   getLawTitle,
   limitTocDepth,
-  countTocNodes,
 } from './law-tree.js';
-import type { LawNode } from './egov-client.js';
 
 // 消費税法 第30条第1項 を簡略化したフィクスチャ
 const fixture: LawNode = {

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { toEgovArticleNum, fromEgovArticleNum } from './article-num.js';
+import { describe, expect, it } from 'vitest';
+import { fromEgovArticleNum, toEgovArticleNum } from './article-num.js';
 
 describe('toEgovArticleNum', () => {
   it('handles bare arabic numbers', () => {

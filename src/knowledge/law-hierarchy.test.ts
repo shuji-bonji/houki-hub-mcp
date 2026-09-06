@@ -1,9 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  LAW_HIERARCHY,
   findLawHierarchy,
-  listLawHierarchyNames,
+  LAW_HIERARCHY,
   type LawHierarchyEntry,
+  listLawHierarchyNames,
 } from './law-hierarchy.js';
 
 describe('LAW_HIERARCHY data integrity', () => {

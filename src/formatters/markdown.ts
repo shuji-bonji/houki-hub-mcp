@@ -7,6 +7,7 @@
  * - 本MCPは事実情報の提示に徹し、判断・解釈は加えない
  */
 
+import { EGOV_API } from '../config.js';
 import type { LawNode } from '../services/egov-client.js';
 import {
   extractText,
@@ -16,7 +17,6 @@ import {
   type TocNode,
 } from '../services/law-tree.js';
 import { fromEgovArticleNum } from '../utils/article-num.js';
-import { EGOV_API } from '../config.js';
 
 export interface FormatArticleOptions {
   lawTitle: string;

@@ -6,11 +6,11 @@
  * テスト実行環境ごとの rebuild に注意（memory: sandbox_native_rebuild_hazard）。
  */
 
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import Database from 'better-sqlite3';
 import type DatabaseT from 'better-sqlite3';
-import { initSchema, getSchemaVersion, SCHEMA_VERSION, clearAllData } from './schema.js';
-import { openDb, closeDb } from './index.js';
+import Database from 'better-sqlite3';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { closeDb, openDb } from './index.js';
+import { clearAllData, getSchemaVersion, initSchema, SCHEMA_VERSION } from './schema.js';
 
 function listTables(db: DatabaseT.Database): Set<string> {
   const rows = db

@@ -5,16 +5,16 @@
  * このファイルでは DB アクセス層と警告メッセージ生成 (MCP 固有) を検証する。
  */
 
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import Database from 'better-sqlite3';
 import type DatabaseT from 'better-sqlite3';
-import { initSchema } from '../db/schema.js';
+import Database from 'better-sqlite3';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { closeDb } from '../db/index.js';
+import { initSchema } from '../db/schema.js';
 import {
-  summarizeFreshness,
   buildWarning,
-  STALENESS_THRESHOLDS,
   judgeStaleness,
+  STALENESS_THRESHOLDS,
+  summarizeFreshness,
 } from './freshness.js';
 
 /** sync_state を seed する (single-row 制約 id=1) */

@@ -96,12 +96,13 @@ Skill の書き方は本プロジェクトのスコープ外ですが、作っ�
 
 ## コーディング規約
 
-- TypeScript 5.x / ESM / Node.js >= 20
+- TypeScript 7.x / ESM / Node.js >= 22（CI は 22 と 24）
+- MCP SDK は v2（`@modelcontextprotocol/server`）。サーバー本体は `src/server.ts` の `createServer()`、bin エントリ `src/index.ts` が `serveStdio(createServer)` で起動
 - インポートは `.js` 拡張子を明示（TS ファイル内でも）
 - `console.log` 禁止（stdio MCP プロトコル保護のため）。ログは `src/utils/logger.ts` 経由
-- テストは `vitest`
-- フォーマットは `prettier`
-- ESLint flat config (`eslint.config.js`)
+- テストは `vitest`。MCP 経由の応答は `src/server.test.ts`（`InMemoryTransport`）で検証
+- lint / フォーマットは Biome（`biome.json`）。`npm run check` で自動修正込みの一括実行
+  - 法令テキストに含まれる全角スペース（U+3000）は、文字列・コメント・正規表現の中では指摘されません（コード部分に混入した場合のみ `noIrregularWhitespace` が警告）
 
 ## 質問・議論
 

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { makeError, isLawServiceError, NEXT_ACTIONS } from './errors.js';
+import { describe, expect, it } from 'vitest';
+import { isLawServiceError, makeError, NEXT_ACTIONS } from './errors.js';
 
 describe('makeError', () => {
   it('builds the minimum required shape', () => {

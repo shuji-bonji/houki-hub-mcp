@@ -1,11 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
-  handleResolveAbbreviation,
-  handleSearchLaw,
+  handleExplainLawType,
   handleGetLaw,
   handleGetToc,
+  handleResolveAbbreviation,
   handleSearchFulltext,
-  handleExplainLawType,
+  handleSearchLaw,
   toolHandlers,
 } from './handlers.js';
 

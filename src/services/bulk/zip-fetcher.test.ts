@@ -11,11 +11,11 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   BulkFetchError,
+  type BulkProgress,
   downloadFullZip,
   downloadIncrementalZip,
   downloadZip,
   ZipFormatError,
-  type BulkProgress,
 } from './zip-fetcher.js';
 
 // PK\x03\x04 + ダミー本文
