@@ -6,8 +6,8 @@
  */
 
 import { EGOV_API, HTTP_CONFIG } from '../config.js';
-import { logger } from '../utils/logger.js';
 import { createLimit } from '../utils/concurrency.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * e-Gov API への同時リクエスト数を制限する。

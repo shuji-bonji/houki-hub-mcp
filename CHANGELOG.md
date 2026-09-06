@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### In progress (Phase 2 — 残作業)
 
-- Phase 2-7: `search_fulltext` を FTS5 バックエンドに接続（現状はまだ `search_law` フォールバックのまま）
+- Phase 2-7 (v0.5.0): `search_fulltext` を FTS5 バックエンドに接続（現状はまだ `search_law` フォールバックのまま）
 - Phase 2-13: API enrichment（`category` / `revisions_meta` / PreviousEnforced・Repeal の精緻化）
 - Phase 2-8: 差分同期 (`--bulk-download-incremental`) の日次ループ
 
@@ -17,6 +17,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - 漢数字対応（「第三十条」を 30 に変換）
 - 大規模法令の応答サイズ対策の本格化（章/節単位での部分取得 API）
+
+## [0.4.0] - 2026-09-06
+
+**MCP SDK v2 移行リリース** — MCP ツールの応答形式・ツール一覧は v0.3.1 から変わりません。`search_fulltext` は引き続き `search_law` へのフォールバックで、FTS5 バックエンドへの接続は次リリース（Phase 2-7、v0.5.0）で行います。
+
+### Changed
+
+- **MCP SDK を v2 に移行** — `@modelcontextprotocol/sdk ^1.29` → `@modelcontextprotocol/server ^2.0.0`（2026-07-28 公開、同日付の MCP 仕様改訂に対応）。
+  - サーバー本体を `src/server.ts` の `createServer()`（factory）に切り出し、bin エントリ `src/index.ts` は `serveStdio(createServer)` で起動する。`serveStdio` が stdio transport を所有し、2025 系 / 2026-07-28 系クライアントの protocol version 交渉を行う
+  - 低レベル `Server` を維持。`setRequestHandler` のキーは Zod スキーマからメソッド名文字列（`'tools/list'` / `'tools/call'`）に変更。tools/call の family error contract（`UNKNOWN_TOOL` / `INTERNAL_ERROR` の JSON 化 + `isError: true`）は変更なし
+  - `Tool` 型の import 元を `@modelcontextprotocol/server` に変更（`inputSchema` は JSON Schema のまま）
+  - SIGINT / SIGTERM で `handle.close()` を呼び、transport とサーバーを閉じてから終了する
+- **Node.js の下限を 22 に引き上げ**（`engines.node >=22.0.0`。Node 20 は 2026-04-30 に EOL）。CI マトリクスは 22 / 24
+- **TypeScript 7.0（tsgo）に更新** — `tsconfig.json` の変更なし。ビルドは従来どおり `tsc && chmod +x dist/index.js`
+- **lint / フォーマットを ESLint + Prettier から Biome 2.5 に置き換え** — `eslint.config.js` / `.prettierrc` / `.prettierignore` を削除し `biome.json` を追加。フォーマット規則は従来の Prettier 設定（single quote / es5 / semi / width 100 / 2 space）と同一で、既存コードの再フォーマットは import 順の整列のみ。`complexity/useLiteralKeys` は日本語キー（`LAW_HIERARCHY['憲法']`）の可読性のため無効化
+  - scripts: `lint` = `biome lint src`、`format` = `biome format --write src`、`format:check` = `biome format src`、`check` = `biome check --write src`
+  - Biome 指摘の修正: `let db` / `let res` に型注釈（`noImplicitAnyLet`）、`import 'module'` → `'node:module'`、テストの文字列連結をテンプレートリテラルに
+- `@types/node` を `^24` に更新
+
+### Added
+
+- **新規 `src/server.test.ts`**（9 ケース） — `@modelcontextprotocol/client` の `InMemoryTransport` で `createServer()` を in-process 起動し、initialize の name / version、`tools/list` の一覧と JSON Schema、`UNKNOWN_TOOL` / `LawServiceError` / handler 例外（`INTERNAL_ERROR`）の 3 経路が `isError: true` になることを MCP 経由で検証
+- `docs/SDK-V2-MIGRATION-PLAN.md` — 移行計画と Phase 2-7 との順序判断
+
+### Removed
+
+- devDependencies: `eslint` / `@eslint/js` / `typescript-eslint` / `eslint-config-prettier` / `prettier`
 
 ## [0.3.1] - 2026-07-14
 
@@ -415,7 +442,8 @@ Phase 0（スケルトン整備）完了リリース。
 
 **Phase 0 完了**。Phase 1 本実装の前に、**2週間の実運用痛点ログ**（`docs/PAIN-POINTS-TEMPLATE.md`）を経由して MVP スコープを確定する。
 
-[Unreleased]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.2.0...v0.2.1

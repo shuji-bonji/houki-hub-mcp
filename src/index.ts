@@ -1,100 +1,22 @@
 #!/usr/bin/env node
 
 /**
- * JP-Houki MCP Server
+ * JP-Houki MCP Server — bin エントリ
  * Japanese laws and regulations MCP — thin e-Gov core with pluggable extensions
  *
  * Phase 2-6 で CLI モードを追加。`--bulk-download-everything` / `--status` 等の
  * フラグで起動した場合は CLI ハンドラを実行し exit する。引数なしの場合は
  * MCP server として stdio に常駐する。
+ *
+ * v0.4.0 で MCP SDK v2 (`@modelcontextprotocol/server`) に移行。
+ * サーバー本体は `src/server.ts` の `createServer()`。
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-
-import { tools } from './tools/definitions.js';
-import { toolHandlers } from './tools/handlers.js';
-import { PACKAGE_INFO } from './config.js';
-import { logger } from './utils/logger.js';
-import { makeError, isLawServiceError, NEXT_ACTIONS } from './errors.js';
+import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { runCli, shouldFallbackToMcp } from './cli/index.js';
-
-// Server instance
-const server = new Server(
-  {
-    name: PACKAGE_INFO.name,
-    version: PACKAGE_INFO.version,
-  },
-  {
-    capabilities: {
-      tools: {},
-    },
-  }
-);
-
-// List tools
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return { tools };
-});
-
-// Execute tool
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-
-  try {
-    const handler = toolHandlers[name];
-    if (!handler) {
-      const err = makeError('UNKNOWN_TOOL', `Unknown tool: ${name}`, {
-        hint: `利用可能なツール: ${Object.keys(toolHandlers).join(', ')}`,
-        next_actions: [
-          {
-            action: 'list_tools',
-            reason: 'MCP の tools/list で利用可能ツールを確認できます',
-          },
-        ],
-      });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(err, null, 2) }],
-        isError: true,
-      };
-    }
-
-    const result = await handler(args);
-
-    // handler が LawServiceError を返した場合は isError: true を立てる
-    // これにより MCP クライアント / LLM 側でエラーかどうかを判別しやすくする
-    const isError = isLawServiceError(result);
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
-        },
-      ],
-      ...(isError ? { isError: true } : {}),
-    };
-  } catch (error) {
-    // 想定外の例外（バグ等）。INTERNAL_ERROR として LLM 可読形に変換。
-    const cause = error instanceof Error ? error.message : String(error);
-    const err = makeError('INTERNAL_ERROR', `内部エラーが発生しました: ${cause}`, {
-      hint: 'バグの可能性があります。再現手順を添えて GitHub issue でご報告ください',
-      retryable: true,
-      next_actions: [NEXT_ACTIONS.retryLater()],
-      detail: { cause },
-    });
-    logger.error(
-      'server',
-      `tool ${name} threw`,
-      error instanceof Error ? error : new Error(String(error))
-    );
-    return {
-      content: [{ type: 'text', text: JSON.stringify(err, null, 2) }],
-      isError: true,
-    };
-  }
-});
+import { PACKAGE_INFO } from './config.js';
+import { createServer } from './server.js';
+import { logger } from './utils/logger.js';
 
 // Start server (or run CLI command, depending on argv)
 async function main() {
@@ -105,8 +27,14 @@ async function main() {
   }
 
   // 2) MCP server mode (default — argv なし)
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  //    serveStdio が transport を所有し、protocol version の交渉も行う。
+  //    factory は接続ごとに呼ばれる（stdio では 1 プロセス 1 接続）。
+  const handle = serveStdio(createServer);
+  const shutdown = () => {
+    void handle.close();
+  };
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
   logger.info('server', `${PACKAGE_INFO.name} v${PACKAGE_INFO.version} started`);
 }
 

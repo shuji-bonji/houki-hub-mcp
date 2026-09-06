@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { parseLawXml, extractInlineText, XmlParseError } from './xml-parser.js';
+import { extractInlineText, parseLawXml, XmlParseError } from './xml-parser.js';
 
 /** ========== Fixtures ========== */
 

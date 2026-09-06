@@ -5,12 +5,12 @@
  * (in-memory DB) に流して期待する row が入っているかを検証する。
  */
 
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import Database from 'better-sqlite3';
 import type DatabaseT from 'better-sqlite3';
-import { initSchema } from '../../db/schema.js';
+import Database from 'better-sqlite3';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { closeDb } from '../../db/index.js';
-import { ingestZip, IngestError } from './ingester.js';
+import { initSchema } from '../../db/schema.js';
+import { IngestError, ingestZip } from './ingester.js';
 import { createMemoryZip } from './zip-reader.js';
 
 const BOM = '﻿';

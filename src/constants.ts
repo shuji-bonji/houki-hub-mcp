@@ -5,9 +5,9 @@
  * から re-export している。Single Source of Truth はそちら。
  */
 
+export type { Domain, LawTypeCode } from '@shuji-bonji/houki-abbreviations';
 // houki-abbreviations から共有定数を re-export
-export { LAW_TYPE_CODES, DOMAINS } from '@shuji-bonji/houki-abbreviations';
-export type { LawTypeCode, Domain } from '@shuji-bonji/houki-abbreviations';
+export { DOMAINS, LAW_TYPE_CODES } from '@shuji-bonji/houki-abbreviations';
 
 /** 元号コード（e-Gov law_id の先頭1文字） */
 export const ERA_CODES = {

@@ -139,7 +139,7 @@ export async function downloadZip(opts: DownloadZipOptions): Promise<DownloadZip
         throw new BulkFetchError('aborted by signal', err);
       }
       if (attempt === maxRetries) break;
-      const backoffMs = 1000 * Math.pow(2, attempt - 1);
+      const backoffMs = 1000 * 2 ** (attempt - 1);
       await sleep(backoffMs, signal);
     }
   }

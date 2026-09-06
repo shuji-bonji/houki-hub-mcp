@@ -6,37 +6,37 @@
  * - HTTP / parse / 該当なし のエラーを統一形で返す
  */
 
+import { resolveAbbreviation } from '@shuji-bonji/houki-abbreviations';
+import { CACHE_CONFIG, EGOV_API } from '../config.js';
 import {
-  searchLaws,
-  getLawData,
-  getLawRevisions,
+  isLawServiceError as _isLawServiceError,
+  type LawServiceError,
+  makeError,
+  NEXT_ACTIONS,
+} from '../errors.js';
+import { formatArticleMarkdown, formatTocMarkdown } from '../formatters/markdown.js';
+import { toEgovArticleNum } from '../utils/article-num.js';
+import { LRUCache } from '../utils/cache.js';
+import { logger } from '../utils/logger.js';
+import {
   EgovHttpError,
   type EgovLawDataResponse,
+  getLawData,
+  getLawRevisions,
   type LawListItem,
   type RevisionInfo,
+  searchLaws,
 } from './egov-client.js';
 import {
+  countTocNodes,
+  extractToc,
   findArticle,
   findItem,
   findParagraph,
-  extractToc,
-  limitTocDepth,
-  countTocNodes,
-  type TocNode,
   type LawNode,
+  limitTocDepth,
+  type TocNode,
 } from './law-tree.js';
-import { resolveAbbreviation } from '@shuji-bonji/houki-abbreviations';
-import { formatArticleMarkdown, formatTocMarkdown } from '../formatters/markdown.js';
-import { LRUCache } from '../utils/cache.js';
-import { CACHE_CONFIG, EGOV_API } from '../config.js';
-import { toEgovArticleNum } from '../utils/article-num.js';
-import { logger } from '../utils/logger.js';
-import {
-  makeError,
-  isLawServiceError as _isLawServiceError,
-  NEXT_ACTIONS,
-  type LawServiceError,
-} from '../errors.js';
 
 /**
  * EgovHttpError などの例外を、LLM 可読な LawServiceError に変換する。
@@ -536,7 +536,7 @@ export async function getLawRevisionsByName(opts: { law_name: string; latest?: n
       ],
     });
   }
-  let res;
+  let res: Awaited<ReturnType<typeof getLawRevisions>>;
   try {
     res = await getLawRevisions(resolved.law_id);
   } catch (err) {

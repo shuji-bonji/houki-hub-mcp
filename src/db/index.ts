@@ -11,9 +11,8 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, resolve } from 'node:path';
-
-import Database from 'better-sqlite3';
 import type DatabaseT from 'better-sqlite3';
+import Database from 'better-sqlite3';
 
 import { BULK_CONFIG } from '../config.js';
 import { initSchema } from './schema.js';
@@ -58,4 +57,4 @@ export function closeDb(db: DatabaseT.Database): void {
   }
 }
 
-export { initSchema, clearAllData, getSchemaVersion, SCHEMA_VERSION } from './schema.js';
+export { clearAllData, getSchemaVersion, initSchema, SCHEMA_VERSION } from './schema.js';

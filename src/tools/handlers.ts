@@ -6,15 +6,15 @@
  */
 
 import { resolveAbbreviation } from '@shuji-bonji/houki-abbreviations';
+import { NEXT_ACTIONS } from '../errors.js';
 import { findLawHierarchy, listLawHierarchyNames } from '../knowledge/law-hierarchy.js';
 import {
-  searchLawByKeyword,
   getLawArticle,
-  getLawToc,
   getLawRevisionsByName,
+  getLawToc,
+  searchLawByKeyword,
 } from '../services/law-service.js';
-import type { SearchLawArgs, GetLawArgs, GetTocArgs, SearchFulltextArgs } from '../types/index.js';
-import { NEXT_ACTIONS } from '../errors.js';
+import type { GetLawArgs, GetTocArgs, SearchFulltextArgs, SearchLawArgs } from '../types/index.js';
 
 /**
  * search_law — 法令検索
@@ -142,7 +142,7 @@ export async function handleExplainLawType(args: { name: string }) {
 /**
  * Tool handlers map
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: 各 handler の引数型が異なるため、dispatch 表では any で受ける
 export const toolHandlers: Record<string, (args: any) => Promise<unknown>> = {
   search_law: handleSearchLaw,
   get_law: handleGetLaw,

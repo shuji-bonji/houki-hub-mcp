@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { parseCsv, parseAllLawList, extractLawRevisionId, CsvParseError } from './csv-parser.js';
+import { CsvParseError, extractLawRevisionId, parseAllLawList, parseCsv } from './csv-parser.js';
 
 // 実物の CSV と同形式のヘッダ (UTF-8 BOM 付き、CRLF)
 const BOM = '﻿';
@@ -28,7 +28,7 @@ const ROW_UNENFORCED =
 
 describe('parseCsv (state-machine CSV parser)', () => {
   it('BOM を除去する', () => {
-    const rows = parseCsv(BOM + 'a,b,c');
+    const rows = parseCsv(`${BOM}a,b,c`);
     expect(rows).toEqual([['a', 'b', 'c']]);
   });
 
@@ -77,7 +77,7 @@ describe('parseCsv (state-machine CSV parser)', () => {
   });
 
   it('Buffer 入力も受け付ける', () => {
-    const rows = parseCsv(Buffer.from(BOM + 'a,b\r\nc,d', 'utf-8'));
+    const rows = parseCsv(Buffer.from(`${BOM}a,b\r\nc,d`, 'utf-8'));
     expect(rows).toEqual([
       ['a', 'b'],
       ['c', 'd'],
@@ -182,12 +182,12 @@ describe('parseAllLawList', () => {
   });
 
   it('行の列数が足りないと CsvParseError (skipMalformed=false)', () => {
-    const csv = BOM + HEADER + CRLF + 'a,b,c' + CRLF;
+    const csv = `${BOM}${HEADER}${CRLF}a,b,c${CRLF}`;
     expect(() => parseAllLawList(csv)).toThrow(CsvParseError);
   });
 
   it('skipMalformed=true で不正行を skip', () => {
-    const csv = BOM + HEADER + CRLF + 'bogus,line\r\n' + ROW_SIMPLE + CRLF;
+    const csv = `${BOM}${HEADER}${CRLF}bogus,line\r\n${ROW_SIMPLE}${CRLF}`;
     const rows = parseAllLawList(csv, { skipMalformed: true });
     expect(rows).toHaveLength(1);
     expect(rows[0].law_id).toBe('105DF0000000337');
