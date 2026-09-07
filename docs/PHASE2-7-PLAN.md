@@ -1,6 +1,8 @@
-# Phase 2-7 実装計画: search_fulltext の FTS5 接続（v0.4.0）
+# Phase 2-7 実装計画: search_fulltext の FTS5 接続（v0.5.0）
 
-作成日: 2026-07-19 / 対象バージョン: v0.3.1 → v0.4.0
+作成日: 2026-07-19 / 対象バージョン: v0.4.0 → v0.5.0（v0.4.0 は MCP SDK v2 移行に充てたため 1 つ繰り下げ。2026-09-07 実装完了）
+
+> **実装時の差分（2026-09-07）**: trigram tokenizer は 3 文字未満の語を索引しないため、2 文字トークンは「FTS ヒット本文の includes による AND 絞り込み」と「法令名・略称の LIKE 照合」で補う経路を追加した。条番号「第N条」は MATCH 式から外して boost 専用にした。既存 DB は `SCHEMA_VERSION` を 2 に上げて自動初期化する（migration ではなく再 DL）。`HOUKI_HUB_BULK_CACHE` フラグは廃止。
 
 > **番号について**: README/CHANGELOG の「Phase 2-7」は PHASE2-DESIGN.md §9 の **2-11 (search_fulltext 本実装) + 2-12 (relevance scoring)** に相当する。本計画では以後 README 側の「2-7」で呼ぶ。
 

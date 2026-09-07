@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import Database from 'better-sqlite3';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { closeDb } from '../db/index.js';
+import { initSchema } from '../db/schema.js';
+import { seedTestDb } from '../test-helpers/law-db-fixture.js';
 import {
   handleExplainLawType,
   handleGetLaw,
@@ -138,5 +142,74 @@ describe('toolHandlers map', () => {
 
   it('does NOT include explain_business_law_restriction (removed in v0.2.0)', () => {
     expect(Object.keys(toolHandlers)).not.toContain('explain_business_law_restriction');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// search_fulltext (Phase 2-7) — bulk DB 経路と API フォールバック経路
+// ---------------------------------------------------------------------------
+describe('handleSearchFulltext (Phase 2-7)', () => {
+  // `:memory:` は openDb 側で毎回新規 DB になるため、投入済み DB をファイルとして用意する
+  const tmpDir = `${process.env.TMPDIR ?? '/tmp'}/houki-egov-test-${process.pid}`;
+  const dbPath = `${tmpDir}/laws.db`;
+  const emptyDbPath = `${tmpDir}/empty.db`;
+
+  beforeEach(async () => {
+    const { mkdirSync, rmSync } = await import('node:fs');
+    rmSync(tmpDir, { recursive: true, force: true });
+    mkdirSync(tmpDir, { recursive: true });
+    const db = new Database(dbPath);
+    initSchema(db);
+    await seedTestDb(db);
+    closeDb(db);
+  });
+
+  afterEach(async () => {
+    const { rmSync } = await import('node:fs');
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('bulk DB にデータがあれば source=bulk で FTS ヒットと freshness を返す', async () => {
+    const r = await handleSearchFulltext({ keyword: '適格請求書' }, { dbPath });
+    expect(r.source).toBe('bulk');
+    if (r.source !== 'bulk') return;
+    expect(r.count).toBe(2);
+    expect(r.hits[0].law_title).toBe('消費税法');
+    expect(r.hits[0].snippet).toContain('<b>');
+    expect(r.freshness?.last_sync_date).toBe('2026-09-01');
+    expect(['fresh', 'stale', 'outdated']).toContain(r.freshness?.staleness);
+    expect(r.filters.domain.applied).toBe(false);
+    expect(r.expanded_keywords).toEqual({ from: '適格請求書', to: '消費税法' });
+  });
+
+  it('law_type / limit 引数が効く', async () => {
+    const r = await handleSearchFulltext(
+      { keyword: '適格請求書', law_type: 'CabinetOrder', limit: 1 },
+      { dbPath }
+    );
+    if (r.source !== 'bulk') throw new Error('expected bulk');
+    expect(r.count).toBe(0);
+    expect(r.filters.law_type).toBe('CabinetOrder');
+    const r2 = await handleSearchFulltext({ keyword: '適格請求書', limit: 1 }, { dbPath });
+    if (r2.source !== 'bulk') throw new Error('expected bulk');
+    expect(r2.count).toBe(1);
+  });
+
+  it('domain は受け付けるが applied=false + note', async () => {
+    const r = await handleSearchFulltext({ keyword: '適格請求書', domain: 'tax' }, { dbPath });
+    if (r.source !== 'bulk') throw new Error('expected bulk');
+    expect(r.filters.domain.requested).toBe('tax');
+    expect(r.filters.domain.note).toContain('Phase 2-13');
+  });
+
+  it('bulk DL 未実行 (articles 0 件) なら search_law フォールバック + 誘導 note', async () => {
+    // 空 keyword で search_law を呼ばせ、ネットワークに出ずに INVALID_ARGUMENT を返させる
+    const r = await handleSearchFulltext({ keyword: '' }, { dbPath: emptyDbPath });
+    expect(r.source).toBe('api-fallback');
+    if (r.source !== 'api-fallback') return;
+    expect(r.note).toContain('bulk DL 未実行');
+    expect(r.note).toContain('--bulk-download-everything');
+    expect(r.next_actions[0].action).toBe('bulk_download_everything');
+    expect((r.fallback as { code?: string }).code).toBe('INVALID_ARGUMENT');
   });
 });

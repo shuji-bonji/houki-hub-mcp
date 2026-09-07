@@ -176,6 +176,35 @@ describe('ingestZip', () => {
     expect(hits.length).toBeGreaterThan(0);
   });
 
+  it('body は normalizeJpText 済み、body_raw は原文のまま (Phase 2-7 Normalize-everywhere)', async () => {
+    const xml = XML_KAIREKI.replace(
+      '今般改暦ノ儀別紙　詔書ノ通被　仰出候条此旨相達候事',
+      '第１２条　ＰＬ法－２　今般改暦ノ儀'
+    );
+    const zip = createMemoryZip([
+      { path: 'all_law_list.csv', content: buildCsv([CSV_KAIREKI]) },
+      { path: '105DF0000000337_18721109_000000000000000.xml', content: xml },
+    ]);
+    await ingestZip({ db, zip, nowIso: NOW_ISO });
+
+    const row = db
+      .prepare('SELECT body, body_raw FROM articles WHERE law_revision_id = ?')
+      .get('105DF0000000337_18721109_000000000000000') as { body: string; body_raw: string };
+    expect(row.body).toBe('第12条 PL法-2 今般改暦ノ儀');
+    expect(row.body_raw).toBe('第１２条　ＰＬ法－２　今般改暦ノ儀');
+
+    // articles_fts (trigger 同期) は normalize 済み body を索引している
+    const hit = db
+      .prepare(`SELECT rowid FROM articles_fts WHERE articles_fts MATCH '"pl法-2"'`)
+      .get();
+    expect(hit).toBeDefined();
+    // laws.law_title (表示用) は原文のまま
+    const law = db
+      .prepare('SELECT law_title FROM laws WHERE law_revision_id = ?')
+      .get('105DF0000000337_18721109_000000000000000') as { law_title: string };
+    expect(law.law_title).toBe('明治五年太政官布告第三百三十七号（改暦ノ布告）');
+  });
+
   it('laws_fts (standalone) にも手動で同期される', async () => {
     const zip = createMemoryZip([
       { path: 'all_law_list.csv', content: buildCsv([CSV_YOKIN]) },

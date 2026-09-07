@@ -105,18 +105,20 @@ export const tools: Tool[] = [
   {
     name: 'search_fulltext',
     description:
-      '法令本文をキーワードで横断全文検索する。HOUKI_HUB_BULK_CACHE=1 環境時に SQLite FTS5 で動作。未有効時は API フォールバック。',
+      '法令の条文本文をキーワードで横断全文検索する（ローカル SQLite FTS5）。`houki-egov-mcp --bulk-download-everything` で構築した bulk DB を引き、略称は正式名称に OR 展開（例: "消法" → "消費税法"）。各ヒットに条番号・snippet・score・DB の鮮度 (freshness) を付けて返す。bulk DB 未構築時は search_law（法令名のタイトル一致）にフォールバックし、その旨を note で返す。',
     inputSchema: {
       type: 'object',
       properties: {
         keyword: {
           type: 'string',
-          description: '検索キーワード。スペース区切りで AND 検索',
+          description:
+            '検索キーワード。スペース区切りで AND 検索。「第30条」を含めると該当条番号のヒットを上位に寄せる（漢数字は未対応）',
         },
         domain: {
           type: 'string',
           enum: [...DOMAINS],
-          description: '分野タグで絞り込み',
+          description:
+            '分野タグ。v0.5.0 では受け付けるが絞り込みは行わない（bulk DB の category 列が未投入のため。Phase 2-13 で実効化）',
         },
         law_type: {
           type: 'string',

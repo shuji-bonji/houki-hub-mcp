@@ -83,8 +83,6 @@ export const CACHE_CONFIG = {
  * Runtime flags from environment
  */
 export const RUNTIME_FLAGS = {
-  /** Enable local bulk-download cache (SQLite FTS5) */
-  bulkCache: process.env.HOUKI_HUB_BULK_CACHE === '1',
   /** Comma-separated list of extension packages to load */
   extensions: (process.env.HOUKI_HUB_EXTENSIONS ?? '')
     .split(',')

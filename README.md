@@ -17,7 +17,7 @@ LLM が条文をキーワード・略称・分野で検索したり、特定の�
 | `get_law` | 条/項/号レベルで本文取得（Markdown / JSON / TOC） |
 | `get_toc` | 目次のみ取得（トークン節約） |
 | `get_law_revisions` | 改正履歴を取得（公布日・施行日・状態） |
-| `search_fulltext` | 全文検索（Phase 2 まで `search_law` にフォールバック） |
+| `search_fulltext` | 条文本文の横断全文検索（ローカル SQLite FTS5。bulk DB 未構築時は `search_law` にフォールバック） |
 | `resolve_abbreviation` | 略称→正式名解決の診断 |
 | `explain_law_type` | 法令種別（憲法・法律・政令・省令・通達 等）の解説 |
 
@@ -97,11 +97,15 @@ npx @shuji-bonji/houki-egov-mcp --status
 
 DB のデフォルト配置は `${XDG_CACHE_HOME:-~/.cache}/houki-egov-mcp/laws.db`（`HOUKI_EGOV_DB_PATH` で変更可）。
 
-> **注**: v0.3.1 時点で DB は取り込みまで。`search_fulltext` ツールから FTS5 を引くのは Phase 2-7（次リリース）です。現状の `search_fulltext` は `search_law`（タイトル一致）にフォールバックします。
+DB を構築すると `search_fulltext` が条文本文を SQLite FTS5 で検索します（v0.5.0〜）。略称は正式名称に OR 展開され（`消法` → `消費税法`）、各ヒットに条番号・snippet・score・DB の鮮度（`freshness`）が付きます。DB が未構築のときは従来どおり `search_law`（法令名のタイトル一致）にフォールバックし、`note` でその旨を返します。
+
+> **v0.4.x 以前に構築した DB について**: v0.5.0 で本文の正規化（全角数字・全角英字・全角スペースの半角化）を投入時に行うようになり、スキーマバージョンを 2 に上げました。旧 DB は次回起動時に自動で初期化されるので、`--bulk-download-everything` を再実行してください。
+>
+> **検索語の制約**: 索引が trigram のため、条文本文は 3 文字以上の語で引きます。2 文字の語（「保存」「民法」等）は、3 文字以上の語と組み合わせたときは本文の AND 絞り込みに、単独のときは法令名・略称の照合にだけ使われます。「第30条」のような条番号は本文検索には使わず、該当条を上位に寄せる加点にだけ使います（漢数字は未対応）。
 
 ## 状態
 
-**v0.3.1 (2026-07-14)**
+**v0.5.0 (2026-09-07)**
 
 - [x] e-Gov 法令API v2 クライアント（`searchLaws` / `getLawData` / `getLawRevisions`）
 - [x] 法令ツリー走査（条/項/号、目次抽出）+ LRU cache
@@ -110,12 +114,13 @@ DB のデフォルト配置は `${XDG_CACHE_HOME:-~/.cache}/houki-egov-mcp/laws.
 - [x] 法令階層ナレッジ（憲法・法律・政令・省令・規則・条例・告示・訓令・通達・通知 の10種別）
 - [x] houki-hub family 共通の error contract（`SOURCE_*` / `OUT_OF_SCOPE`）に準拠
 - [x] Phase 2 基盤：bulk DL → SQLite FTS5 の取り込みパイプライン（schema / CSV・XML parser / zip fetcher / ingester / freshness / CLI）
+- [x] Phase 2-7: `search_fulltext` の FTS5 本実装（略称 OR 展開 / revision 重複排除 / relevance scoring / freshness）
+- [x] MCP SDK v2（`@modelcontextprotocol/server`）/ Node 22・24 / TypeScript 7 / Biome
 - [x] Trusted Publisher (OIDC) で publish
-- [x] テストスイート（**193 tests**）
+- [x] テストスイート（**247 tests**）
 
 ### 計画中
 
-- [ ] Phase 2-7: `search_fulltext` を FTS5 バックエンドに接続（現状は `search_law` にフォールバック）
 - [ ] Phase 2-8: 差分同期（`--bulk-download-incremental`）
 - [ ] Phase 2-13: API enrichment（`category` / 改正履歴 / 廃止ステータスの精緻化）
 - [ ] 漢数字対応（「第三十条」を 30 に変換）
