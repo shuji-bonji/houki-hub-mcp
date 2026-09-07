@@ -104,6 +104,24 @@ describe('computeLawRelevance', () => {
     expect(onlyNum.score_reasons).not.toContain('article_caption_match');
   });
 
+  it('supplementary_provision で -0.15 (下限 0)', () => {
+    const r = computeLawRelevance({
+      rank: -10,
+      query: '課税仕入れ',
+      lawTitle: '消費税法',
+      isSupplementary: true,
+    });
+    expect(r.score).toBeCloseTo(0.5 - 0.15);
+    expect(r.score_reasons).toContain('supplementary_provision');
+    const floor = computeLawRelevance({
+      rank: -0.5,
+      query: 'x',
+      lawTitle: 'y',
+      isSupplementary: true,
+    });
+    expect(floor.score).toBe(0);
+  });
+
   it('上限は 1.0', () => {
     const r = computeLawRelevance({
       rank: -100,

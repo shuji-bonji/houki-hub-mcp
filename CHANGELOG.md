@@ -36,13 +36,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - `searchArticleFts`（`articles_fts` + `snippet()`）と `searchLawMetaFts`（`laws_fts`）を `laws` と JOIN し、`current_revision_status = 'CurrentEnforced' OR remain_in_force = 1` で **同一法令の旧 revision の重複ヒットを排除**
   - `law_meta` 経路: 本文が `articles` に入らない法令（太政官布告 等）や法令名そのものを探すケースを捕捉。article 経路で捕捉済みの revision は捨てる
   - **2 文字トークンの補完**（trigram は 3 文字未満を索引しないため）: 3 文字以上の語と併用時は FTS ヒット本文の `includes` で AND 絞り込み、単独時は `laws.law_title` / `abbrev` の LIKE 照合（`searchLawMetaLike`）。1 文字は対象外
+  - **法令スコープ**（`splitLawScope`）: 「民法 不法行為」「労基法 時間外」のように法令名・略称と語を並べたクエリは、法令名を検索対象の絞り込みに回し、残りの語で本文を検索する（応答の `law_scope` に解釈結果を返す）。辞書の `formal` / `abbr` と DB の `law_title` に一致するトークンだけが対象で、「インボイス」「適格請求書」のような通称（aliases）は従来どおり OR 展開に回す。スコープ内で 2 文字語だけのとき（「民法 契約」）は本文 LIKE で引く
+  - 附則の条番号は `附則(137) 51の2`、別表は `別表(2)` の表示形式にする（`formatArticleNumForDisplay`）
   - `hasAnyArticle` / `hasAnyLaw`: bulk DL 未実行の判定
 - **新規 `src/services/relevance-scoring.ts`** — nta 版から doc_type 重みを外した法令向け変種
   - `score = min(base(rank) + boosts, 1.0)`、`base = 1 / (1 + 10 / |rank|)`
-  - boost: `title_exact_match` +0.3 / `abbrev_match` +0.2（XML Abbrev と辞書の abbr・aliases）/ `article_num_match` +0.3（クエリ中の「第N条」「第N条のM」。漢数字は未対応）/ `article_caption_match` +0.1
+  - boost: `title_exact_match` +0.3 / `abbrev_match` +0.2（XML Abbrev と辞書の abbr・aliases）/ `article_num_match` +0.3（クエリ中の「第N条」「第N条のM」。漢数字は未対応）/ `article_caption_match` +0.1 / `supplementary_provision` -0.15（附則の条。実データでは経過措置の条が本則より上に来やすいため）
   - FTS からは `min(limit×3, 150)` 件取って re-rank
 - **新規 `src/test-helpers/law-db-fixture.ts`** — 消費税法（現行 + PreviousEnforced）/ 労働基準法（全角数字本文）/ 太政官布告（Article なし）を `:memory:` に投入する共通 fixture（dist には含めない）
-- テスト 45 件追加（`law-search.test.ts` 27 / `relevance-scoring.test.ts` 13 / `handlers.test.ts` 4 / `ingester.test.ts` 1）。合計 **247 tests**
+- テスト 52 件追加（`law-search.test.ts` 33 / `relevance-scoring.test.ts` 14 / `handlers.test.ts` 4 / `ingester.test.ts` 1）。合計 **254 tests**
 
 ### Changed
 

@@ -12,7 +12,12 @@ import { closeDb, openDb } from '../db/index.js';
 import { NEXT_ACTIONS } from '../errors.js';
 import { findLawHierarchy, listLawHierarchyNames } from '../knowledge/law-hierarchy.js';
 import { type FreshnessInfo, summarizeFreshness } from '../services/freshness.js';
-import { hasAnyArticle, type LawSearchHit, searchLawsInDb } from '../services/law-search.js';
+import {
+  hasAnyArticle,
+  type LawScope,
+  type LawSearchHit,
+  searchLawsInDb,
+} from '../services/law-search.js';
 import {
   getLawArticle,
   getLawRevisionsByName,
@@ -70,6 +75,8 @@ export interface SearchFulltextBulkResponse {
   keyword: string;
   /** 略称辞書で OR 展開した場合の元と先 */
   expanded_keywords?: { from: string; to: string };
+  /** クエリ中の法令名を検索対象の法令として解釈した結果 (「民法 不法行為」の「民法」) */
+  law_scope?: LawScope[];
   source: 'bulk';
   count: number;
   hits: LawSearchHit[];
@@ -144,6 +151,7 @@ export async function handleSearchFulltext(
       },
     };
     if (result.expanded) response.expanded_keywords = result.expanded;
+    if (result.law_scope) response.law_scope = result.law_scope;
     return response;
   } finally {
     closeDb(db);

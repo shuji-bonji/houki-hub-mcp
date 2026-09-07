@@ -97,7 +97,7 @@ npx @shuji-bonji/houki-egov-mcp --status
 
 DB のデフォルト配置は `${XDG_CACHE_HOME:-~/.cache}/houki-egov-mcp/laws.db`（`HOUKI_EGOV_DB_PATH` で変更可）。
 
-DB を構築すると `search_fulltext` が条文本文を SQLite FTS5 で検索します（v0.5.0〜）。略称は正式名称に OR 展開され（`消法` → `消費税法`）、各ヒットに条番号・snippet・score・DB の鮮度（`freshness`）が付きます。DB が未構築のときは従来どおり `search_law`（法令名のタイトル一致）にフォールバックし、`note` でその旨を返します。
+DB を構築すると `search_fulltext` が条文本文を SQLite FTS5 で検索します（v0.5.0〜）。略称は正式名称に OR 展開され（`消法` → `消費税法`）、「民法 不法行為」「労基法 時間外」のように法令名と語を並べるとその法令の条に絞って本文を検索します。各ヒットに条番号・snippet・score・DB の鮮度（`freshness`）が付きます。DB が未構築のときは従来どおり `search_law`（法令名のタイトル一致）にフォールバックし、`note` でその旨を返します。
 
 > **v0.4.x 以前に構築した DB について**: v0.5.0 で本文の正規化（全角数字・全角英字・全角スペースの半角化）を投入時に行うようになり、スキーマバージョンを 2 に上げました。旧 DB は次回起動時に自動で初期化されるので、`--bulk-download-everything` を再実行してください。
 >
@@ -117,7 +117,7 @@ DB を構築すると `search_fulltext` が条文本文を SQLite FTS5 で検索
 - [x] Phase 2-7: `search_fulltext` の FTS5 本実装（略称 OR 展開 / revision 重複排除 / relevance scoring / freshness）
 - [x] MCP SDK v2（`@modelcontextprotocol/server`）/ Node 22・24 / TypeScript 7 / Biome
 - [x] Trusted Publisher (OIDC) で publish
-- [x] テストスイート（**247 tests**）
+- [x] テストスイート（**254 tests**）
 
 ### 計画中
 

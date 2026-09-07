@@ -16,6 +16,7 @@
  *   - `abbrev_match`          +0.2 — 略称 (XML の Abbrev / houki-abbreviations の abbr・aliases) がクエリと一致
  *   - `article_num_match`     +0.3 — クエリ中の「第N条」がヒットの条番号と一致
  *   - `article_caption_match` +0.1 — 条見出し (caption) にクエリが含まれる
+ *   - `supplementary_provision` -0.15 — 附則 (経過措置) の条。本則を優先する
  *
  * nta 版にあった **doc_type 重みは使わない**。法令の間に拘束力の階層差はなく、
  * 種別 (法律 / 政令 / 省令) で並び順を歪めるべきではないため (PHASE2-DESIGN.md §6.2)。
@@ -37,6 +38,9 @@ export const BOOST = {
   articleNum: 0.3,
   caption: 0.1,
 } as const;
+
+/** 附則 (経過措置) の条に掛ける減点。本則の条が同点なら上に来るようにする */
+export const SUPPLEMENTARY_PENALTY = 0.15;
 
 /** スコアの上限 */
 export const SCORE_MAX = 1.0;
@@ -92,6 +96,8 @@ export interface LawScoringInput {
   articleNum?: string;
   /** ヒットの条見出し (articles.caption) */
   caption?: string | null;
+  /** 附則の条か。true なら本則より下げる */
+  isSupplementary?: boolean;
 }
 
 /** スコア計算の出力 */
@@ -150,7 +156,12 @@ export function computeLawRelevance(input: LawScoringInput): LawScoringOutput {
     }
   }
 
-  return { score: Math.min(score, SCORE_MAX), score_reasons: reasons };
+  if (input.isSupplementary) {
+    score -= SUPPLEMENTARY_PENALTY;
+    reasons.push('supplementary_provision');
+  }
+
+  return { score: Math.max(0, Math.min(score, SCORE_MAX)), score_reasons: reasons };
 }
 
 /**

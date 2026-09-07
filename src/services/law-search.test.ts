@@ -13,11 +13,23 @@ import { initSchema } from '../db/schema.js';
 import { seedTestDb } from '../test-helpers/law-db-fixture.js';
 import {
   buildFtsQueryWithAbbreviation,
+  formatArticleNumForDisplay,
   hasAnyArticle,
   hasAnyLaw,
   sanitizeFtsQuery,
   searchLawsInDb,
+  splitLawScope,
 } from './law-search.js';
+
+describe('formatArticleNumForDisplay', () => {
+  it('本則 / 附則 / 別表を表示用に整形する', () => {
+    expect(formatArticleNumForDisplay('30')).toBe('30');
+    expect(formatArticleNumForDisplay('30_2')).toBe('30の2');
+    expect(formatArticleNumForDisplay('Suppl3_1')).toBe('附則(3) 1');
+    expect(formatArticleNumForDisplay('Suppl137_51_2')).toBe('附則(137) 51の2');
+    expect(formatArticleNumForDisplay('Appendix2')).toBe('別表(2)');
+  });
+});
 
 describe('sanitizeFtsQuery', () => {
   it('空白区切りを "tok" AND "tok" に整形する', () => {
@@ -190,6 +202,61 @@ describe('searchLawsInDb', () => {
       expect(h.score).toBeGreaterThan(0);
       expect(h.score).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+describe('law scope (法令名 + 語 のクエリ)', () => {
+  let db: DatabaseT.Database;
+
+  beforeEach(async () => {
+    db = new Database(':memory:');
+    initSchema(db);
+    await seedTestDb(db);
+  });
+
+  afterEach(() => {
+    closeDb(db);
+  });
+
+  it('splitLawScope: 略称 / 正式名称 / DB の法令名をスコープに、残りを検索語にする', () => {
+    expect(splitLawScope(db, ['労基法', '労働時間'])).toEqual({
+      scope: [{ token: '労基法', law_title: '労働基準法', law_id: '322AC0000000049' }],
+      rest: ['労働時間'],
+    });
+    expect(splitLawScope(db, ['消費税法', '適格請求書']).scope[0].law_title).toBe('消費税法');
+    // aliases (通称) は法令名ではないのでスコープにしない
+    expect(splitLawScope(db, ['適格請求書', '保存']).scope).toEqual([]);
+    // 1 トークンは対象外、全トークンが法令名でも対象外
+    expect(splitLawScope(db, ['民法']).scope).toEqual([]);
+    expect(splitLawScope(db, ['消費税法', '労基法']).scope).toEqual([]);
+  });
+
+  it('「労基法 労働時間」は労働基準法の条に絞り、本文には「労基法」を要求しない', () => {
+    const r = searchLawsInDb(db, '労基法 労働時間');
+    expect(r.law_scope?.[0].law_title).toBe('労働基準法');
+    expect(r.fts_query).toBe('"労働時間"');
+    expect(r.hits.length).toBe(1);
+    expect(r.hits[0].law_title).toBe('労働基準法');
+    expect(r.hits[0].article_num).toBe('36');
+  });
+
+  it('スコープ外の法令の条はヒットしない', () => {
+    // 「課税」は消費税法にしかないが、労基法スコープなので 0 件
+    const r = searchLawsInDb(db, '労基法 課税仕入れ');
+    expect(r.hits).toEqual([]);
+  });
+
+  it('スコープ + 2 文字語だけ (「労基法 協定」) は本文 LIKE で引く', () => {
+    const r = searchLawsInDb(db, '労基法 協定');
+    expect(r.hits.length).toBe(1);
+    expect(r.hits[0].article_num).toBe('36');
+    expect(r.hits[0].law_title).toBe('労働基準法');
+  });
+
+  it('附則の条は supplementary_provision で減点される', () => {
+    const r = searchLawsInDb(db, '適格請求書');
+    // fixture には附則がないので減点理由は付かない
+    for (const h of r.hits) expect(h.score_reasons).not.toContain('supplementary_provision');
   });
 });
 

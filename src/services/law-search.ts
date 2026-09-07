@@ -82,6 +82,42 @@ export interface LawSearchResult {
   expanded?: { from: string; to: string };
   /** FTS5 に投げた MATCH 式 (デバッグ用) */
   fts_query: string;
+  /**
+   * クエリ中の法令名・略称トークンを「検索対象の法令」として解釈した結果。
+   * 例: `民法 不法行為` → `[{ token: '民法', law_title: '民法', law_id: '129AC…' }]`
+   * (本文検索は残りの `不法行為` で行い、民法の条に絞る)
+   */
+  law_scope?: LawScope[];
+}
+
+/** 法令スコープ 1 件 */
+export interface LawScope {
+  /** 元のトークン */
+  token: string;
+  law_title: string;
+  /** 辞書に law_id があればそれ、なければ null (law_title で絞る) */
+  law_id: string | null;
+}
+
+/** 附則の条か (`Suppl{idx}_{Num}`) */
+export function isSupplementaryArticle(articleNum: string): boolean {
+  return articleNum.startsWith('Suppl');
+}
+
+/**
+ * articles.article_num (xml-parser の識別子) を表示用に整形する。
+ *
+ * - 本則: `30` → `30`、`30_2` → `30の2`
+ * - 附則: `Suppl3_1` → `附則(3) 1`、`Suppl137_51_2` → `附則(137) 51の2`
+ *   ※ 括弧内は法令 XML 内での附則の通し番号 (改正法ごとに附則が積み重なる)
+ * - 別表: `Appendix2` → `別表(2)`
+ */
+export function formatArticleNumForDisplay(articleNum: string): string {
+  const suppl = articleNum.match(/^Suppl(\d+)_(.+)$/);
+  if (suppl) return `附則(${suppl[1]}) ${fromEgovArticleNum(suppl[2])}`;
+  const appendix = articleNum.match(/^Appendix(\d+)$/);
+  if (appendix) return `別表(${appendix[1]})`;
+  return fromEgovArticleNum(articleNum);
 }
 
 /** e-Gov 法令検索 URL */
@@ -180,14 +216,79 @@ export function hasAnyLaw(db: DatabaseT.Database): boolean {
   return row !== undefined;
 }
 
-/** laws JOIN 時の共通 WHERE (revision 重複対策 + law_type 絞り込み) */
-function statusWhere(lawType: string | undefined, params: Array<string | number>): string {
+/** laws JOIN 時の共通 WHERE (revision 重複対策 + law_type 絞り込み + 法令スコープ) */
+function statusWhere(
+  lawType: string | undefined,
+  params: Array<string | number>,
+  scope: LawScope[] = []
+): string {
   let where = ` AND (l.current_revision_status = 'CurrentEnforced' OR l.remain_in_force = 1)`;
   if (lawType) {
     where += ` AND l.law_type = ?`;
     params.push(lawType);
   }
+  if (scope.length > 0) {
+    const ids = scope.filter((sc) => sc.law_id).map((sc) => sc.law_id as string);
+    const titles = scope.filter((sc) => !sc.law_id).map((sc) => sc.law_title);
+    const parts: string[] = [];
+    if (ids.length > 0) {
+      parts.push(`l.law_id IN (${ids.map(() => '?').join(',')})`);
+      params.push(...ids);
+    }
+    if (titles.length > 0) {
+      parts.push(`l.law_title IN (${titles.map(() => '?').join(',')})`);
+      params.push(...titles);
+    }
+    where += ` AND (${parts.join(' OR ')})`;
+  }
   return where;
+}
+
+/** クエリを空白でトークンに分ける (条番号指定・メタ文字は除去、1 文字は捨てる) */
+function tokenizeQuery(raw: string): string[] {
+  return normalizeSearchQuery(raw ?? '')
+    .replace(ARTICLE_NUM_IN_QUERY, ' ')
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/["*:()]/g, ' ')
+    .split(/\s+/)
+    .filter((t) => t.length >= SHORT_TOKEN_MIN_LENGTH);
+}
+
+/**
+ * トークンのうち「法令名そのもの」を指すものを法令スコープに解釈する。
+ *
+ * - 辞書 (`resolveAbbreviation`) の `formal` または `abbr` と一致 → その法令 (law_id)
+ *   ※ aliases (「インボイス」「適格請求書」等の通称) は法令名ではないので対象外 (OR 展開に回す)
+ * - DB の `laws.law_title` と完全一致 → その法令 (law_title)
+ *
+ * 2 トークン以上あるときだけ適用する (1 トークンのクエリは従来どおり law_meta / OR 展開)。
+ *
+ * @returns scope と、本文検索に残すトークン
+ */
+export function splitLawScope(
+  db: DatabaseT.Database,
+  tokens: string[]
+): { scope: LawScope[]; rest: string[] } {
+  if (tokens.length < 2) return { scope: [], rest: tokens };
+  const scope: LawScope[] = [];
+  const rest: string[] = [];
+  const titleExists = db.prepare('SELECT law_title FROM laws WHERE law_title = ? LIMIT 1');
+  for (const t of tokens) {
+    const e = resolveAbbreviation(t, { normalize: true });
+    if (e && e.source_mcp_hint === 'houki-egov' && (e.formal === t || e.abbr === t)) {
+      scope.push({ token: t, law_title: e.formal, law_id: e.law_id ?? null });
+      continue;
+    }
+    const row = titleExists.get(t) as { law_title: string } | undefined;
+    if (row) {
+      scope.push({ token: t, law_title: row.law_title, law_id: null });
+      continue;
+    }
+    rest.push(t);
+  }
+  // 全トークンが法令名なら (「民法 商法」) スコープ扱いにせず従来経路へ
+  if (rest.length === 0) return { scope: [], rest: tokens };
+  return { scope, rest };
 }
 
 /** articles_fts の生ヒット行 */
@@ -224,11 +325,11 @@ interface LawMetaRow {
 export function searchArticleFts(
   db: DatabaseT.Database,
   ftsQuery: string,
-  options: { fetchLimit: number; lawType?: string }
+  options: { fetchLimit: number; lawType?: string; scope?: LawScope[] }
 ): ArticleRow[] {
   if (!ftsQuery) return [];
   const params: Array<string | number> = [ftsQuery];
-  const where = statusWhere(options.lawType, params);
+  const where = statusWhere(options.lawType, params, options.scope);
   params.push(options.fetchLimit);
   const sql = `
     SELECT
@@ -248,16 +349,50 @@ export function searchArticleFts(
 }
 
 /**
+ * 法令スコープ内で、2 文字語だけのクエリ (「民法 契約」の「契約」) を本文 LIKE で引く。
+ * スコープで対象法令が絞られているため全件 LIKE でも現実的な件数で済む。
+ * rank は固定 (-5) で base score を控えめにする。
+ */
+export function searchArticleLikeInScope(
+  db: DatabaseT.Database,
+  tokens: string[],
+  options: { fetchLimit: number; lawType?: string; scope: LawScope[] }
+): ArticleRow[] {
+  if (tokens.length === 0 || options.scope.length === 0) return [];
+  const params: Array<string | number> = [];
+  const clauses = tokens.map((t) => {
+    params.push(`%${t.replace(/[%_\\]/g, (c) => `\\${c}`)}%`);
+    return `a.body LIKE ? ESCAPE '\\'`;
+  });
+  const where = statusWhere(options.lawType, params, options.scope);
+  params.push(options.fetchLimit);
+  const sql = `
+    SELECT
+      a.law_revision_id, a.article_num, a.caption, a.chapter_path,
+      l.law_id, l.law_title, l.law_num, l.law_type, l.abbrev,
+      substr(a.body_raw, 1, 80) AS snippet,
+      -5.0 AS rank,
+      a.body AS body
+    FROM articles a
+    JOIN laws l ON l.law_revision_id = a.law_revision_id
+    WHERE ${clauses.join(' AND ')}${where}
+    ORDER BY a.ord
+    LIMIT ?
+  `;
+  return db.prepare(sql).all(...params) as ArticleRow[];
+}
+
+/**
  * 法令名・略称・番号 (laws_fts) を検索する。スコアリング前の生ヒットを FTS5 順で返す。
  */
 export function searchLawMetaFts(
   db: DatabaseT.Database,
   ftsQuery: string,
-  options: { fetchLimit: number; lawType?: string }
+  options: { fetchLimit: number; lawType?: string; scope?: LawScope[] }
 ): LawMetaRow[] {
   if (!ftsQuery) return [];
   const params: Array<string | number> = [ftsQuery];
-  const where = statusWhere(options.lawType, params);
+  const where = statusWhere(options.lawType, params, options.scope);
   params.push(options.fetchLimit);
   const sql = `
     SELECT
@@ -315,10 +450,15 @@ export function searchLawsInDb(
   options: LawSearchOptions = {}
 ): LawSearchResult {
   const limit = Math.max(options.limit ?? 10, 1);
-  const built = buildFtsQueryWithAbbreviation(keyword, {
+
+  // 「民法 不法行為」のように法令名 + 語 のクエリは、法令名をスコープ (絞り込み) に回す
+  const { scope, rest } = splitLawScope(db, tokenizeQuery(keyword));
+  const searchText = scope.length > 0 ? rest.join(' ') : keyword;
+
+  const built = buildFtsQueryWithAbbreviation(searchText, {
     enableExpansion: options.enableAbbreviationExpansion,
   });
-  const shortTokens = extractShortTokens(keyword);
+  const shortTokens = extractShortTokens(searchText);
   // 短トークンで後段絞り込みするときは多めに取る
   const fetchLimit =
     shortTokens.length > 0
@@ -327,27 +467,32 @@ export function searchLawsInDb(
   if (!built.query && shortTokens.length === 0) return { hits: [], fts_query: '' };
 
   // 略称辞書側の abbr / aliases を boost 判定に使う (formal が一致する法令のみ)
-  const dictEntry = resolveAbbreviation(keyword.trim(), { normalize: true });
+  const dictEntry = resolveAbbreviation(searchText.trim(), { normalize: true });
   const dictAbbrevsFor = (lawTitle: string): string[] => {
     if (!dictEntry || dictEntry.formal !== lawTitle) return [];
     return [dictEntry.abbr, ...(dictEntry.aliases ?? [])];
   };
 
   // 2 文字トークンは trigram で引けないので、FTS ヒットの本文に含まれるかで絞り込む (AND 意味論)
-  const articleRows = searchArticleFts(db, built.query, {
-    fetchLimit,
-    lawType: options.lawType,
-  }).filter((r) => shortTokens.every((t) => r.body.includes(t)));
+  const articleRows =
+    !built.query && scope.length > 0
+      ? searchArticleLikeInScope(db, shortTokens, { fetchLimit, lawType: options.lawType, scope })
+      : searchArticleFts(db, built.query, {
+          fetchLimit,
+          lawType: options.lawType,
+          scope,
+        }).filter((r) => shortTokens.every((t) => r.body.includes(t)));
   const seenRevisions = new Set<string>();
   const hits: LawSearchHit[] = articleRows.map((r) => {
     seenRevisions.add(r.law_revision_id);
     const { score, score_reasons } = computeLawRelevance({
       rank: r.rank,
-      query: keyword,
+      query: searchText,
       lawTitle: r.law_title,
       abbrevs: [r.abbrev, ...dictAbbrevsFor(r.law_title)],
       articleNum: r.article_num,
       caption: r.caption,
+      isSupplementary: isSupplementaryArticle(r.article_num),
     });
     return {
       match_type: 'article',
@@ -356,7 +501,7 @@ export function searchLawsInDb(
       law_title: r.law_title,
       law_num: r.law_num,
       law_type: r.law_type,
-      article_num: fromEgovArticleNum(r.article_num),
+      article_num: formatArticleNumForDisplay(r.article_num),
       caption: r.caption,
       chapter_path: r.chapter_path || null,
       snippet: r.snippet,
@@ -367,8 +512,12 @@ export function searchLawsInDb(
     };
   });
 
-  const metaRows = searchLawMetaFts(db, built.query, { fetchLimit, lawType: options.lawType });
-  if (shortTokens.length > 0 && !built.query) {
+  const metaRows = searchLawMetaFts(db, built.query, {
+    fetchLimit,
+    lawType: options.lawType,
+    scope,
+  });
+  if (shortTokens.length > 0 && !built.query && scope.length === 0) {
     // 「民法」のようにクエリ全体が短い語のときは法令名 LIKE で補完する
     metaRows.push(...searchLawMetaLike(db, shortTokens, { fetchLimit, lawType: options.lawType }));
   }
@@ -377,7 +526,7 @@ export function searchLawsInDb(
     seenRevisions.add(r.law_revision_id);
     const { score, score_reasons } = computeLawRelevance({
       rank: r.rank,
-      query: keyword,
+      query: searchText,
       lawTitle: r.law_title,
       abbrevs: [r.abbrev, ...dictAbbrevsFor(r.law_title)],
     });
@@ -401,6 +550,7 @@ export function searchLawsInDb(
 
   const sorted = sortByScoreDesc(hits).slice(0, limit);
   const result: LawSearchResult = { hits: sorted, fts_query: built.query };
+  if (scope.length > 0) result.law_scope = scope;
   if (built.expandedFrom && built.expandedTo) {
     result.expanded = { from: built.expandedFrom, to: built.expandedTo };
   }
