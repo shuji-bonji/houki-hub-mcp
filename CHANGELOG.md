@@ -17,6 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - 漢数字対応（「第三十条」を 30 に変換）
 - 大規模法令の応答サイズ対策の本格化（章/節単位での部分取得 API）
 
+## [0.5.1] - 2026-09-07
+
+**bug fix リリース — 編（Part）を持つ法令の本則が bulk DB に入っていなかった問題の修正**。v0.5.0 を plugin 経由で試用したところ、`search_fulltext("民法 不法行為")` が附則の条しか返さず、民法 709 条が出ませんでした。原因は XML パーサーが `MainProvision > Part > Chapter` の `Part`（編）を辿らず、民法・会社法・刑法・商法など編を持つ法令の本則の条をすべて落としていたことです。
+
+**v0.5.0 で構築した DB は `houki-egov-mcp --bulk-download-everything` を再実行してください**（content_hash が変わるため全件が再 ingest されます。スキーマの初期化は不要）。
+
+### Fixed
+
+- `src/services/bulk/xml-parser.ts`: `Part` / `PartTitle` を階層走査に追加。`chapter_path` には `第三編　債権 第五章　不法行為` のように編から入る
+
+### Changed
+
+- `src/services/bulk/ingester.ts`: `content_hash` の入力に `INGEST_VERSION`（= 2）を混ぜる（`contentHashOf`）。パーサーや normalize を変えたときに定数を上げるだけで全件再 ingest を強制でき、`SCHEMA_VERSION` を上げて DROP する必要がなくなる
+- テスト 2 件追加（合計 **256 tests**）
+
 ## [0.5.0] - 2026-09-07
 
 **Phase 2-7 リリース — `search_fulltext` の FTS5 本実装**。`houki-egov-mcp --bulk-download-everything` で構築したローカル DB を引き、条文本文を横断検索します。bulk DB 未構築の環境では従来どおり `search_law` にフォールバックします（応答の `source` で区別できます）。
@@ -481,7 +496,8 @@ Phase 0（スケルトン整備）完了リリース。
 
 **Phase 0 完了**。Phase 1 本実装の前に、**2週間の実運用痛点ログ**（`docs/PAIN-POINTS-TEMPLATE.md`）を経由して MVP スコープを確定する。
 
-[Unreleased]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.3.0...v0.3.1

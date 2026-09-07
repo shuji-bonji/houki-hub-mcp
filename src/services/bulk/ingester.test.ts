@@ -5,12 +5,13 @@
  * (in-memory DB) に流して期待する row が入っているかを検証する。
  */
 
+import { createHash } from 'node:crypto';
 import type DatabaseT from 'better-sqlite3';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { closeDb } from '../../db/index.js';
 import { initSchema } from '../../db/schema.js';
-import { IngestError, ingestZip } from './ingester.js';
+import { contentHashOf, IngestError, ingestZip } from './ingester.js';
 import { createMemoryZip } from './zip-reader.js';
 
 const BOM = '﻿';
@@ -203,6 +204,12 @@ describe('ingestZip', () => {
       .prepare('SELECT law_title FROM laws WHERE law_revision_id = ?')
       .get('105DF0000000337_18721109_000000000000000') as { law_title: string };
     expect(law.law_title).toBe('明治五年太政官布告第三百三十七号（改暦ノ布告）');
+  });
+
+  it('content_hash は INGEST_VERSION を含む (パーサー変更で再 ingest を強制できる)', () => {
+    const buf = Buffer.from('<Law/>');
+    expect(contentHashOf(buf)).not.toBe(createHash('sha256').update(buf).digest('hex'));
+    expect(contentHashOf(buf)).toBe(contentHashOf(Buffer.from('<Law/>')));
   });
 
   it('laws_fts (standalone) にも手動で同期される', async () => {

@@ -81,6 +81,18 @@ export interface IngestResult {
 /** zip 内 CSV ファイル名候補 (full / incremental どちらでも拾える) */
 const CSV_PATTERN = /(?:^|\/)([^/]*\.csv)$/i;
 
+/**
+ * ingest ロジックのバージョン。content_hash の入力に混ぜる。
+ *
+ * XML パーサーや normalize の変更で「同じ XML から違う行が生成される」ようになったときに上げる。
+ * 上げると全法令の content_hash が変わり、`--bulk-download-everything` の再実行で
+ * 全件が再 ingest される (スキーマを DROP せずに済む)。
+ *
+ * - 1: v0.5.0 (normalize 適用)
+ * - 2: v0.5.1 (xml-parser が Part (編) 配下の Article を拾うよう修正)
+ */
+export const INGEST_VERSION = 2;
+
 /** 西暦変換用の元号オフセット */
 const ERA_OFFSETS: Record<string, number> = {
   Meiji: 1867, // Meiji 1 = 1868
@@ -252,7 +264,7 @@ export async function ingestZip(opts: IngestZipOptions): Promise<IngestResult> {
       continue;
     }
     xmlSeen++;
-    const contentHash = sha256(xmlContent);
+    const contentHash = contentHashOf(xmlContent);
 
     // content_hash 比較で no-op 判定
     const existing = selectExistingHash.get(revisionId) as { content_hash: string } | undefined;
@@ -470,9 +482,9 @@ function normalizeNullable(v: string | null): string | null {
   return v == null ? null : normalizeJpText(v);
 }
 
-/** Buffer の SHA-256 hex */
-function sha256(buf: Buffer): string {
-  return createHash('sha256').update(buf).digest('hex');
+/** XML 本体 + INGEST_VERSION の content_hash (パーサー変更で再 ingest を強制できる) */
+export function contentHashOf(xml: Buffer): string {
+  return createHash('sha256').update(xml).update(`\n#ingest_v${INGEST_VERSION}`).digest('hex');
 }
 
 /** ISO 8601 timestamp → YYYY-MM-DD */

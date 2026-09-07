@@ -344,3 +344,46 @@ describe('parseLawXml — メタデータ詳細', () => {
     expect(law.abbrev).toBeNull();
   });
 });
+
+describe('parseLawXml — Part (編) を持つ法令 (民法型)', () => {
+  const LAW_WITH_PART = `<?xml version="1.0" encoding="UTF-8"?>
+<Law Era="Meiji" Year="29" Num="089" LawType="Act" Lang="ja" PromulgateMonth="04" PromulgateDay="27">
+  <LawNum>明治二十九年法律第八十九号</LawNum>
+  <LawBody>
+    <LawTitle Kana="みんぽう">民法</LawTitle>
+    <MainProvision>
+      <Part Num="1">
+        <PartTitle>第一編　総則</PartTitle>
+        <Chapter Num="1">
+          <ChapterTitle>第一章　通則</ChapterTitle>
+          <Article Num="1">
+            <ArticleCaption>（基本原則）</ArticleCaption>
+            <ArticleTitle>第一条</ArticleTitle>
+            <Paragraph Num="1"><ParagraphSentence><Sentence>私権は、公共の福祉に適合しなければならない。</Sentence></ParagraphSentence></Paragraph>
+          </Article>
+        </Chapter>
+      </Part>
+      <Part Num="3">
+        <PartTitle>第三編　債権</PartTitle>
+        <Chapter Num="5">
+          <ChapterTitle>第五章　不法行為</ChapterTitle>
+          <Article Num="709">
+            <ArticleCaption>（不法行為による損害賠償）</ArticleCaption>
+            <ArticleTitle>第七百九条</ArticleTitle>
+            <Paragraph Num="1"><ParagraphSentence><Sentence>故意又は過失によって他人の権利又は法律上保護される利益を侵害した者は、これによって生じた損害を賠償する責任を負う。</Sentence></ParagraphSentence></Paragraph>
+          </Article>
+        </Chapter>
+      </Part>
+    </MainProvision>
+  </LawBody>
+</Law>`;
+
+  it('Part > Chapter > Article を拾い、chapter_path に編と章が入る', () => {
+    const law = parseLawXml(LAW_WITH_PART);
+    expect(law.articles.map((a) => a.article_num)).toEqual(['1', '709']);
+    expect(law.articles[0].chapter_path).toBe('第一編　総則 第一章　通則');
+    expect(law.articles[1].chapter_path).toBe('第三編　債権 第五章　不法行為');
+    expect(law.articles[1].caption).toBe('（不法行為による損害賠償）');
+    expect(law.articles[1].body_raw).toContain('故意又は過失');
+  });
+});
