@@ -13,6 +13,7 @@
  *       ├── EnactStatement                      制定文 (旧法に多い)
  *       ├── TOC                                  目次 (検索ノイズなので除外)
  *       ├── MainProvision
+ *       │   ├── Part (Num) > PartTitle > Chapter (編 — 民法・会社法 等)
  *       │   ├── Chapter (Num) > ChapterTitle > Section / Article
  *       │   ├── Section (Num) > SectionTitle > Subsection / Article
  *       │   ├── Subsection / Division
@@ -69,7 +70,7 @@ export interface ParsedArticle {
   article_num: string;
   /** ArticleCaption テキスト or 別表タイトル (空文字 → null) */
   caption: string | null;
-  /** Chapter > Section > Subsection > Division を連結したパス (空可) */
+  /** Part > Chapter > Section > Subsection > Division を連結したパス (空可) */
   chapter_path: string;
   /** Article 内の全テキスト (Caption / Title 除く) を連結したもの */
   body_raw: string;
@@ -85,6 +86,7 @@ export class XmlParseError extends Error {
 
 /** 配列で扱う必要のある要素一覧 (XMLParser の isArray 用) */
 const ARRAY_ELEMENTS = new Set([
+  'Part',
   'Chapter',
   'Section',
   'Subsection',
@@ -205,7 +207,7 @@ export function parseLawXml(xml: string): ParsedLaw {
 }
 
 /**
- * Chapter / Section / Subsection / Division を再帰的に降りて Article を articles に詰める。
+ * Part / Chapter / Section / Subsection / Division を再帰的に降りて Article を articles に詰める。
  * MainProvision 直下に Article が直接ぶら下がっているケースも扱う (旧法に多い)。
  */
 function walkArticles(
@@ -219,6 +221,7 @@ function walkArticles(
 
   // 階層タグ → タイトルタグの対応
   const HIERARCHY: Array<readonly [string, string]> = [
+    ['Part', 'PartTitle'], // 編 (民法・会社法・刑法 など大規模法令)。v0.5.1 で対応
     ['Chapter', 'ChapterTitle'],
     ['Section', 'SectionTitle'],
     ['Subsection', 'SubsectionTitle'],
