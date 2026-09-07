@@ -1,3 +1,7 @@
+> [!CAUTION]
+> 旧リポジトリ名 `houki-hub-mcp` / 旧 npm 名 `@shuji-bonji/houki-hub-mcp` は使っていません。
+> 現行は `@shuji-bonji/houki-egov-mcp` です。
+
 # Houki e-Gov MCP Server
 
 [![CI](https://github.com/shuji-bonji/houki-egov-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/shuji-bonji/houki-egov-mcp/actions/workflows/ci.yml)
