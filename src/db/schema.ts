@@ -31,8 +31,12 @@ import type DatabaseT from 'better-sqlite3';
  * スキーマバージョン。スキーマ変更時に上げる。
  *
  * - v1: 初版（Phase 2-1）— laws / articles / revisions_meta / sync_state / FTS5 2 種
+ * - v2: Phase 2-7 (v0.5.0) — テーブル定義は同じだが、`articles.body` と `laws_fts` の各列を
+ *       `normalizeJpText` 済みで投入するよう ingester を変更した。v1 で作った DB は
+ *       content_hash が一致して再 ingest が no-op になってしまうため、バージョン不一致で
+ *       DROP & CREATE し、`--bulk-download-everything` の再実行で全件を normalize 済みにする
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 const SCHEMA_SQL = `
 PRAGMA journal_mode = WAL;
@@ -110,7 +114,7 @@ CREATE TABLE IF NOT EXISTS sync_state (
   last_full_dl_at TEXT NOT NULL,
   total_laws INTEGER NOT NULL DEFAULT 0,
   bulk_source TEXT NOT NULL DEFAULT 'all_xml',
-  schema_version INTEGER NOT NULL DEFAULT 1
+  schema_version INTEGER NOT NULL DEFAULT 2
 );
 
 -- ===== FTS5 =====

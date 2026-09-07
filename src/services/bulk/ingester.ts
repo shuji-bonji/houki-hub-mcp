@@ -20,9 +20,14 @@
  *  - `db.transaction()` で 100 件単位の batch 化 (大量法令でも spike なくこなす)
  *  - 既存 articles は INSERT 前に DELETE で全置換 (revision の本文差し替え用)
  *  - laws_fts は standalone なので INSERT/UPDATE 時に手動で同期する
+ *  - Phase 2-7 (v0.5.0): `articles.body` と `laws_fts` の各列は
+ *    `@shuji-bonji/houki-abbreviations` の `normalizeJpText` を通して投入する
+ *    (Normalize-everywhere — 検索側 `law-search.ts` も同じ関数で query を正規化する)。
+ *    `body_raw` / `laws.law_title` 等の表示用列は原文のまま
  */
 
 import { createHash } from 'node:crypto';
+import { normalizeJpText } from '@shuji-bonji/houki-abbreviations';
 import type DatabaseT from 'better-sqlite3';
 
 import { type AllLawListRow, parseAllLawList } from './csv-parser.js';
@@ -200,19 +205,19 @@ export async function ingestZip(opts: IngestZipOptions): Promise<IngestResult> {
           a.caption,
           a.chapter_path,
           ord++,
-          a.body_raw, // body (normalize は Phase 2-11 で対応)
-          a.body_raw
+          normalizeJpText(a.body_raw), // body: 検索用 (normalize 済み)
+          a.body_raw // body_raw: 表示用 (原文)
         );
       }
       // laws_fts 全置換
       deleteLawsFts.run(item.lawRow.law_revision_id);
       insertLawsFts.run(
         item.lawRow.law_revision_id,
-        item.lawRow.law_title,
-        item.lawRow.law_title_kana,
-        item.lawRow.abbrev,
-        item.lawRow.law_num,
-        item.lawRow.category
+        normalizeJpText(item.lawRow.law_title),
+        normalizeNullable(item.lawRow.law_title_kana),
+        normalizeNullable(item.lawRow.abbrev),
+        normalizeJpText(item.lawRow.law_num),
+        normalizeNullable(item.lawRow.category)
       );
     }
   });
@@ -458,6 +463,11 @@ function baseName(p: string): string {
   const n = p.replace(/\\/g, '/');
   const idx = n.lastIndexOf('/');
   return idx >= 0 ? n.slice(idx + 1) : n;
+}
+
+/** null 許容列向けの normalizeJpText (null はそのまま) */
+function normalizeNullable(v: string | null): string | null {
+  return v == null ? null : normalizeJpText(v);
 }
 
 /** Buffer の SHA-256 hex */

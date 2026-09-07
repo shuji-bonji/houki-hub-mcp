@@ -2,12 +2,17 @@
  * MCP Tool Handlers — houki-egov-mcp
  *
  * e-Gov 法令API v2 と接続する本実装。
- * search_fulltext のみ Phase 2 まではコア機能のフォールバックを返す。
+ * search_fulltext は Phase 2-7 (v0.5.0) からローカル SQLite FTS5 (bulk DL 済み DB) を引く。
+ * bulk DL 未実行のときは search_law (タイトル検索) にフォールバックする。
  */
 
 import { resolveAbbreviation } from '@shuji-bonji/houki-abbreviations';
+import { LIMITS } from '../constants.js';
+import { closeDb, openDb } from '../db/index.js';
 import { NEXT_ACTIONS } from '../errors.js';
 import { findLawHierarchy, listLawHierarchyNames } from '../knowledge/law-hierarchy.js';
+import { type FreshnessInfo, summarizeFreshness } from '../services/freshness.js';
+import { hasAnyArticle, type LawSearchHit, searchLawsInDb } from '../services/law-search.js';
 import {
   getLawArticle,
   getLawRevisionsByName,
@@ -15,6 +20,7 @@ import {
   searchLawByKeyword,
 } from '../services/law-service.js';
 import type { GetLawArgs, GetTocArgs, SearchFulltextArgs, SearchLawArgs } from '../types/index.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * search_law — 法令検索
@@ -59,20 +65,115 @@ export async function handleGetToc(args: GetTocArgs) {
   });
 }
 
+/** search_fulltext の bulk DB 応答 */
+export interface SearchFulltextBulkResponse {
+  keyword: string;
+  /** 略称辞書で OR 展開した場合の元と先 */
+  expanded_keywords?: { from: string; to: string };
+  source: 'bulk';
+  count: number;
+  hits: LawSearchHit[];
+  /** bulk DB の鮮度 (sync_state 由来)。outdated なら warning 付き */
+  freshness: FreshnessInfo | null;
+  filters: {
+    law_type: string | null;
+    /** domain は laws.category が Phase 2-13 まで未投入のため受け付けるが絞り込みは行わない */
+    domain: { requested: string | null; applied: false; note: string };
+  };
+}
+
+/** search_fulltext の API フォールバック応答 (v0.3.x までと同じ `note` / `fallback` を保持) */
+export interface SearchFulltextFallbackResponse {
+  keyword: string;
+  source: 'api-fallback';
+  note: string;
+  next_actions: Array<{ action: string; reason: string; example?: Record<string, unknown> }>;
+  fallback: unknown;
+}
+
+const DOMAIN_NOT_APPLIED_NOTE =
+  'domain 絞り込みは v0.5.0 では未実効です (bulk DB の category 列が Phase 2-13 の API enrichment まで空のため)';
+
 /**
- * search_fulltext — 全文検索
+ * search_fulltext — 全文検索 (Phase 2-7 本実装)
  *
- * Phase 2 で SQLite FTS5 によるローカル全文検索を実装予定。
- * 現状は search_law にフォールバック（タイトル検索）して旨を返す。
+ * 1. bulk DB を開く (`deps.dbPath` 省略時は `defaultDbPath()`)
+ * 2. `hasAnyArticle` が false (bulk DL 未実行) → search_law フォールバック + 誘導 note
+ * 3. `searchLawsInDb` (articles_fts + laws_fts → JOIN laws → scoring → limit)
+ * 4. freshness を付与 (outdated でも DB 結果を返す。API に倒さない)
+ *
+ * `deps.dbPath` はテスト用の注入口 (`:memory:` 等)。
  */
-export async function handleSearchFulltext(args: SearchFulltextArgs) {
+export async function handleSearchFulltext(
+  args: SearchFulltextArgs,
+  deps: { dbPath?: string } = {}
+): Promise<SearchFulltextBulkResponse | SearchFulltextFallbackResponse> {
+  const keyword = (args.keyword ?? '').trim();
+  const limit = Math.min(Math.max(args.limit ?? LIMITS.fulltextDefault, 1), LIMITS.fulltextMax);
+
+  let db: ReturnType<typeof openDb> | null = null;
+  try {
+    db = openDb(deps.dbPath);
+  } catch (err) {
+    // DB を開けない (権限・ディスク等) 場合も API フォールバックで応答する
+    logger.warn('search_fulltext', `bulk DB open failed: ${(err as Error).message}`);
+    return searchFulltextFallback(args, keyword, limit, 'bulk DB を開けなかったため');
+  }
+
+  try {
+    if (!hasAnyArticle(db)) {
+      return searchFulltextFallback(args, keyword, limit, 'bulk DL 未実行のため');
+    }
+
+    const result = searchLawsInDb(db, keyword, { limit, lawType: args.law_type });
+    const freshness = summarizeFreshness(db);
+
+    const response: SearchFulltextBulkResponse = {
+      keyword,
+      source: 'bulk',
+      count: result.hits.length,
+      hits: result.hits,
+      freshness,
+      filters: {
+        law_type: args.law_type ?? null,
+        domain: {
+          requested: args.domain ?? null,
+          applied: false,
+          note: DOMAIN_NOT_APPLIED_NOTE,
+        },
+      },
+    };
+    if (result.expanded) response.expanded_keywords = result.expanded;
+    return response;
+  } finally {
+    closeDb(db);
+  }
+}
+
+/** bulk DB が使えないときの search_law フォールバック */
+async function searchFulltextFallback(
+  args: SearchFulltextArgs,
+  keyword: string,
+  limit: number,
+  why: string
+): Promise<SearchFulltextFallbackResponse> {
   const fallback = await searchLawByKeyword({
-    keyword: args.keyword,
+    keyword,
     law_type: args.law_type,
-    limit: args.limit,
+    limit,
   });
   return {
-    note: 'search_fulltext の本実装は Phase 2（bulkDL + SQLite FTS5）。現状は search_law（タイトル一致）にフォールバックしています',
+    keyword,
+    source: 'api-fallback',
+    note: `${why}、search_law (法令名のタイトル一致) にフォールバックしています。条文本文の全文検索を有効にするには \`houki-egov-mcp --bulk-download-everything\` でローカル DB を構築してください`,
+    next_actions: [
+      {
+        action: 'bulk_download_everything',
+        reason: 'CLI でローカル bulk DB を構築すると search_fulltext が SQLite FTS5 で動作します',
+        example: { command: 'houki-egov-mcp --bulk-download-everything' },
+      },
+      NEXT_ACTIONS.searchLaw(keyword),
+    ],
     fallback,
   };
 }

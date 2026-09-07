@@ -9,7 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### In progress (Phase 2 — 残作業)
 
-- Phase 2-7 (v0.5.0): `search_fulltext` を FTS5 バックエンドに接続（現状はまだ `search_law` フォールバックのまま）
 - Phase 2-13: API enrichment（`category` / `revisions_meta` / PreviousEnforced・Repeal の精緻化）
 - Phase 2-8: 差分同期 (`--bulk-download-incremental`) の日次ループ
 
@@ -17,6 +16,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - 漢数字対応（「第三十条」を 30 に変換）
 - 大規模法令の応答サイズ対策の本格化（章/節単位での部分取得 API）
+
+## [0.5.0] - 2026-09-07
+
+**Phase 2-7 リリース — `search_fulltext` の FTS5 本実装**。`houki-egov-mcp --bulk-download-everything` で構築したローカル DB を引き、条文本文を横断検索します。bulk DB 未構築の環境では従来どおり `search_law` にフォールバックします（応答の `source` で区別できます）。
+
+計画書: [docs/PHASE2-7-PLAN.md](docs/PHASE2-7-PLAN.md)
+
+### Added
+
+- **`search_fulltext` の bulk DB 経路** (`src/tools/handlers.ts`)
+  - 応答: `{ keyword, expanded_keywords?, source: 'bulk', count, hits[], freshness, filters }`。各 hit は `match_type` (`article` / `law_meta`) / `law_id` / `law_revision_id` / `law_title` / `law_num` / `law_type` / `article_num`（`30の2` 表記）/ `caption` / `chapter_path` / `snippet`（`<b>` ハイライト）/ `rank` / `score` / `score_reasons` / `url`
+  - `freshness` は `sync_state` 由来（`last_sync_date` / `staleness` / outdated 時の `warning`）。outdated でも DB の結果を返す（API に倒さない）
+  - `law_type` で絞り込み可。`domain` は受け付けるが `filters.domain.applied: false` + note（`laws.category` が Phase 2-13 まで空のため）
+  - `deps.dbPath` で DB パスを注入できる（テスト用）
+- **新規 `src/services/law-search.ts`** — houki-nta-mcp `db-search.ts` の移植
+  - `sanitizeFtsQuery`: `normalizeSearchQuery` → 条番号除去 → FTS5 メタ文字除去 → 3 文字未満トークン除去 → `"tok" AND "tok"`
+  - `buildFtsQueryWithAbbreviation`: `resolveAbbreviation(kw, { normalize: true })` が `source_mcp_hint: 'houki-egov'` を返す語を `(main) OR (formal)` に展開。略称自体が 2 文字（`消法`）なら formal だけで検索
+  - `searchArticleFts`（`articles_fts` + `snippet()`）と `searchLawMetaFts`（`laws_fts`）を `laws` と JOIN し、`current_revision_status = 'CurrentEnforced' OR remain_in_force = 1` で **同一法令の旧 revision の重複ヒットを排除**
+  - `law_meta` 経路: 本文が `articles` に入らない法令（太政官布告 等）や法令名そのものを探すケースを捕捉。article 経路で捕捉済みの revision は捨てる
+  - **2 文字トークンの補完**（trigram は 3 文字未満を索引しないため）: 3 文字以上の語と併用時は FTS ヒット本文の `includes` で AND 絞り込み、単独時は `laws.law_title` / `abbrev` の LIKE 照合（`searchLawMetaLike`）。1 文字は対象外
+  - `hasAnyArticle` / `hasAnyLaw`: bulk DL 未実行の判定
+- **新規 `src/services/relevance-scoring.ts`** — nta 版から doc_type 重みを外した法令向け変種
+  - `score = min(base(rank) + boosts, 1.0)`、`base = 1 / (1 + 10 / |rank|)`
+  - boost: `title_exact_match` +0.3 / `abbrev_match` +0.2（XML Abbrev と辞書の abbr・aliases）/ `article_num_match` +0.3（クエリ中の「第N条」「第N条のM」。漢数字は未対応）/ `article_caption_match` +0.1
+  - FTS からは `min(limit×3, 150)` 件取って re-rank
+- **新規 `src/test-helpers/law-db-fixture.ts`** — 消費税法（現行 + PreviousEnforced）/ 労働基準法（全角数字本文）/ 太政官布告（Article なし）を `:memory:` に投入する共通 fixture（dist には含めない）
+- テスト 45 件追加（`law-search.test.ts` 27 / `relevance-scoring.test.ts` 13 / `handlers.test.ts` 4 / `ingester.test.ts` 1）。合計 **247 tests**
+
+### Changed
+
+- **ingester が `articles.body` と `laws_fts` の各列を `normalizeJpText` 済みで投入する**（Normalize-everywhere。`body_raw` / `laws.law_title` は原文のまま）。`articles_fts` は trigger 経由で normalize 済み本文を索引する
+- **`SCHEMA_VERSION` を 1 → 2 に更新** — テーブル定義は同じだが、v1 の DB は content_hash が一致して再 ingest が no-op になるため、バージョン不一致で DROP & CREATE する。**v0.4.x 以前に構築した DB は次回起動時に初期化されるので `--bulk-download-everything` を再実行してください**
+- `search_fulltext` の tool description と `keyword` / `domain` の説明を本実装に合わせて更新（`HOUKI_HUB_BULK_CACHE` への言及を削除）
+- API フォールバック応答に `source: 'api-fallback'` と `next_actions`（`bulk_download_everything` / `search_law`）を追加。`note` / `fallback` キーは v0.3.x と同じ
+
+### Removed
+
+- `RUNTIME_FLAGS.bulkCache`（環境変数 `HOUKI_HUB_BULK_CACHE`）— フラグではなく「DB に条があるか」（`hasAnyArticle`）で経路を自動判定する。CLI の `--help` からも削除
 
 ## [0.4.0] - 2026-09-06
 
@@ -442,7 +479,8 @@ Phase 0（スケルトン整備）完了リリース。
 
 **Phase 0 完了**。Phase 1 本実装の前に、**2週間の実運用痛点ログ**（`docs/PAIN-POINTS-TEMPLATE.md`）を経由して MVP スコープを確定する。
 
-[Unreleased]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.2.1...v0.3.0

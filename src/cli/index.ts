@@ -242,7 +242,6 @@ USAGE:
   houki-egov-mcp --help                           この使い方を表示
 
 ENVIRONMENT:
-  HOUKI_HUB_BULK_CACHE=1            MCP server で bulk DB を検索源にする
   HOUKI_EGOV_DB_PATH=/path/to.db    DB ファイルパスを上書き
                                      (default: \${XDG_CACHE_HOME:-~/.cache}/houki-egov-mcp/laws.db)
   HOUKI_EGOV_BULK_RETRY=3           bulk DL 失敗時のリトライ回数
