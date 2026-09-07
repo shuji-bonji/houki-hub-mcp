@@ -21,7 +21,7 @@ LLM が条文をキーワード・略称・分野で検索したり、特定の�
 | `resolve_abbreviation` | 略称→正式名解決の診断 |
 | `explain_law_type` | 法令種別（憲法・法律・政令・省令・通達 等）の解説 |
 
-略称辞書（165エントリ・6分野）は [`@shuji-bonji/houki-abbreviations`](https://github.com/shuji-bonji/houki-abbreviations) を内部で利用しています。
+略称辞書（174 エントリ・6 分野）は [`@shuji-bonji/houki-abbreviations`](https://github.com/shuji-bonji/houki-abbreviations) を内部で利用しています。
 
 ## インストール
 
@@ -38,6 +38,10 @@ LLM が条文をキーワード・略称・分野で検索したり、特定の�
   }
 }
 ```
+
+### Claude Code plugin で使う
+
+リポジトリ同梱の [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) が MCP server として `npx -y @shuji-bonji/houki-egov-mcp@latest` を登録します。plugin として入れた場合も、下の「Claude Desktop で使う」も、起動されるのは npm に公開された同じパッケージです。
 
 ### ローカル開発
 
@@ -81,6 +85,10 @@ npm test
 
 「政令と省令の違いは？」
   → explain_law_type(name="政令")
+
+「民法で不法行為について定めている条文は？」（bulk DB 構築後）
+  → search_fulltext(keyword="民法 不法行為")
+  → law_scope=[民法] に絞って本文検索。709 条・724 条 などが snippet 付きで返る
 ```
 
 ## CLI（ローカル DB の構築 — v0.3.1+）
@@ -96,6 +104,22 @@ npx @shuji-bonji/houki-egov-mcp --status
 ```
 
 DB のデフォルト配置は `${XDG_CACHE_HOME:-~/.cache}/houki-egov-mcp/laws.db`（`HOUKI_EGOV_DB_PATH` で変更可）。
+
+### SQLite と DB の置き場所（npx / plugin 経由で使う場合）
+
+SQLite は本パッケージが依存する `better-sqlite3` に同梱されています（SQLite 3.53 系の amalgamation。OS の sqlite3 は使いません）。`npx` や plugin で初めて起動したときに npm が `better-sqlite3` を取り込み、実行中の Node.js と OS に合ったビルド済みバイナリ（`prebuild-install`）を GitHub Releases から取得します。対応する prebuilt がない Node.js の場合は `node-gyp` でその場でコンパイルするため、Python と C++ ビルドツール（macOS なら Xcode Command Line Tools）が必要になります。Node 22 / 24 の LTS では prebuilt が用意されているので、通常はコンパイルは走りません。
+
+DB ファイルはパッケージの中ではなく、上記のユーザーのキャッシュディレクトリに置かれます。したがって次の 3 つは **同じ 1 つの DB** を読み書きします。
+
+| 起動方法 | 実行されるコード | 読む DB |
+|---|---|---|
+| `npx @shuji-bonji/houki-egov-mcp --bulk-download-everything`（CLI） | npx のキャッシュ内のパッケージ | `~/.cache/houki-egov-mcp/laws.db` |
+| Claude Desktop / Claude Code plugin（`npx -y …`） | 同上（`@latest` 指定なら起動ごとにレジストリを確認） | 同上 |
+| ローカル開発（`node dist/index.js`） | リポジトリの `dist` | 同上 |
+
+このため、DB の構築は一度 CLI で行えば、plugin 経由の `search_fulltext` からもそのまま使えます。`--bulk-download-everything` のあとに MCP server を再起動する必要はありません（`search_fulltext` は呼び出しごとに DB を開いて閉じます）。書き込みは CLI だけが行い、MCP server は読むだけです（journal は WAL なので、取り込み中に検索しても壊れません）。
+
+DB が存在しない、または条が 1 件も入っていないときは、`search_fulltext` は `source: "api-fallback"` で `search_law` の結果を返し、`next_actions` に `--bulk-download-everything` の実行を案内します。パッケージを更新しても DB は消えません（バージョン間の互換は上の注記のとおり、必要なときだけ再構築を案内します）。
 
 DB を構築すると `search_fulltext` が条文本文を SQLite FTS5 で検索します（v0.5.0〜）。略称は正式名称に OR 展開され（`消法` → `消費税法`）、「民法 不法行為」「労基法 時間外」のように法令名と語を並べるとその法令の条に絞って本文を検索します。各ヒットに条番号・snippet・score・DB の鮮度（`freshness`）が付きます。DB が未構築のときは従来どおり `search_law`（法令名のタイトル一致）にフォールバックし、`note` でその旨を返します。
 
@@ -128,17 +152,17 @@ DB を構築すると `search_fulltext` が条文本文を SQLite FTS5 で検索
 
 ## houki-hub MCP family
 
-houki-egov-mcp は **単体で利用可能**ですが、houki-hub MCP family の一員でもあります。同じ family 内の他 MCP（計画中）と組み合わせると、通達・判例等まで横断的に扱えます。
+houki-egov-mcp は **単体で利用可能**ですが、houki-hub MCP family の一員でもあります。同じ family 内の他 MCP と組み合わせると、通達・判例等まで横断的に扱えます。
 
 | パッケージ | 役割 | 状態 |
 |---|---|---|
-| `@shuji-bonji/houki-abbreviations` | 略称辞書（共有ライブラリ） | ✅ v0.1.0 |
-| **`@shuji-bonji/houki-egov-mcp`** | **e-Gov 法令API クライアント（このリポジトリ）** | ✅ v0.2.0 |
-| `@shuji-bonji/houki-nta-mcp` | 国税庁通達・Q&A・タックスアンサー | 計画中 |
+| [`@shuji-bonji/houki-abbreviations`](https://github.com/shuji-bonji/houki-abbreviations) | 略称辞書・正規化・freshness 判定（共有ライブラリ） | ✅ v0.5.0 |
+| **`@shuji-bonji/houki-egov-mcp`** | **e-Gov 法令API クライアント + ローカル全文検索（このリポジトリ）** | ✅ v0.5.1 |
+| [`@shuji-bonji/houki-nta-mcp`](https://github.com/shuji-bonji/houki-nta-mcp) | 国税庁通達・Q&A・タックスアンサー・文書回答事例 | ✅ v0.9.5 |
+| [`houki-research-skill`](https://github.com/shuji-bonji/houki-research-skill) | family を横断する Claude Skill（error contract の正典） | ✅ |
 | `@shuji-bonji/houki-mhlw-mcp` | 厚労省通達・通知 | 計画中 |
 | `@shuji-bonji/houki-court-mcp` | 判例（裁判所サイト） | 構想中 |
 | `@shuji-bonji/houki-saiketsu-mcp` | 国税不服審判所裁決 | 構想中 |
-| `@shuji-bonji/houki-hub` | meta-package（一括 install） | 計画中 |
 
 family 全体の設計思想・想定利用シーン・業法との関係は [`docs/DESIGN.md`](docs/DESIGN.md) を参照。
 

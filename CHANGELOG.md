@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - `src/services/bulk/ingester.ts`: `content_hash` の入力に `INGEST_VERSION`（= 2）を混ぜる（`contentHashOf`）。パーサーや normalize を変えたときに定数を上げるだけで全件再 ingest を強制でき、`SCHEMA_VERSION` を上げて DROP する必要がなくなる
 - テスト 2 件追加（合計 **256 tests**）
+- README: 「SQLite と DB の置き場所（npx / plugin 経由で使う場合）」の節と Claude Code plugin の節を追加。family 表を現状（abbreviations v0.5.0 / nta v0.9.5 / research-skill）に更新、略称辞書の件数を 174 に修正、`search_fulltext` の使用例を追加
 
 ## [0.5.0] - 2026-09-07
 
