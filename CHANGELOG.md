@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - 漢数字対応（「第三十条」を 30 に変換）
 - 大規模法令の応答サイズ対策の本格化（章/節単位での部分取得 API）
 
+## [0.5.3] - 2026-09-07
+
+### Added
+
+- **tools/call の引数検証** — 低レベル `Server` は `registerTool` と違って引数を検証しないため、`definitions.ts` の JSON Schema から SDK v2 の `fromJsonSchema` でバリデータを作り、handler を呼ぶ前に検証する。型違反・必須欠落・enum 違反は family error contract の `INVALID_ARGUMENT`（`detail.issues[]` に `path` / `message`）+ `isError: true` で返す。v0.5.2 までは型違反が handler に届き `INTERNAL_ERROR`（`name.trim is not a function` 等）になっていた
+- `LawServiceError.detail.issues` を追加
+- テスト 1 件追加（合計 **258 tests**）
+
 ## [0.5.2] - 2026-09-07
 
 ### Added
@@ -504,7 +512,8 @@ Phase 0（スケルトン整備）完了リリース。
 
 **Phase 0 完了**。Phase 1 本実装の前に、**2週間の実運用痛点ログ**（`docs/PAIN-POINTS-TEMPLATE.md`）を経由して MVP スコープを確定する。
 
-[Unreleased]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.4.0...v0.5.0

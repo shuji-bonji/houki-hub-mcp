@@ -86,6 +86,28 @@ describe('createServer (SDK v2, InMemoryTransport)', () => {
     expect(body.next_actions[0].action).toBe('list_tools');
   });
 
+  it('inputSchema に合わない引数は INVALID_ARGUMENT + isError: true (handler は呼ばれない)', async () => {
+    const res = await client.callTool({
+      name: 'explain_law_type',
+      // biome-ignore lint/suspicious/noExplicitAny: 型違反を意図的に送る
+      arguments: { name: 123 } as any,
+    });
+    expect(res.isError).toBe(true);
+    const body = JSON.parse(firstText(res));
+    expect(body.code).toBe('INVALID_ARGUMENT');
+    expect(body.detail.issues[0].path).toBe('name');
+    // required 欠落
+    const res2 = await client.callTool({ name: 'search_law', arguments: {} });
+    expect(res2.isError).toBe(true);
+    expect(JSON.parse(firstText(res2)).code).toBe('INVALID_ARGUMENT');
+    // enum 違反
+    const res3 = await client.callTool({
+      name: 'search_law',
+      arguments: { keyword: '消費税', law_type: 'Bogus' },
+    });
+    expect(JSON.parse(firstText(res3)).code).toBe('INVALID_ARGUMENT');
+  });
+
   it('explain_law_type が isError なしで JSON を返す', async () => {
     const res = await client.callTool({ name: 'explain_law_type', arguments: { name: '政令' } });
     expect(res.isError).toBeFalsy();

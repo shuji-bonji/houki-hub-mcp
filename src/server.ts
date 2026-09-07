@@ -7,7 +7,7 @@
  * テストからは `InMemoryTransport` で in-process 起動する。
  */
 
-import { Server } from '@modelcontextprotocol/server';
+import { fromJsonSchema, Server, type StandardSchemaV1 } from '@modelcontextprotocol/server';
 import { PACKAGE_INFO } from './config.js';
 import { isLawServiceError, makeError, NEXT_ACTIONS } from './errors.js';
 import { tools } from './tools/definitions.js';
@@ -18,6 +18,45 @@ import { logger } from './utils/logger.js';
  * MCP サーバーを組み立てる factory。
  * `serveStdio` に渡すほか、テストから `InMemoryTransport` で in-process 起動するために export する。
  */
+/**
+ * definitions.ts の JSON Schema から引数バリデータを作る (SDK v2 の fromJsonSchema)。
+ * 低レベル Server は registerTool と違って引数検証をしないため、tools/call で自前に呼ぶ。
+ * 失敗時は family error contract の INVALID_ARGUMENT で返す (SDK 生成の文言は使わない)。
+ */
+const argValidators = new Map<string, StandardSchemaV1<unknown>>(
+  tools.map((t) => [t.name, fromJsonSchema(t.inputSchema as Parameters<typeof fromJsonSchema>[0])])
+);
+
+/** 引数を検証し、問題があれば INVALID_ARGUMENT の LawServiceError を返す (問題なければ null) */
+async function validateArgs(name: string, args: unknown) {
+  const validator = argValidators.get(name);
+  if (!validator) return null;
+  const result = await validator['~standard'].validate(args ?? {});
+  if (!('issues' in result) || !result.issues || result.issues.length === 0) return null;
+  // fromJsonSchema の既定バリデータは path を持たず、message が `data/name must be string` 形式で来る。
+  // 先頭の `data/` を剥がして path に、残りを message にする
+  const detail = result.issues.map((i) => {
+    const fromPath = (i.path ?? [])
+      .map((seg) => (typeof seg === 'object' ? String(seg.key) : String(seg)))
+      .join('.');
+    const m = /^data(?:\/([^\s]+))?\s+(.*)$/.exec(i.message);
+    const path = fromPath || (m?.[1] ?? '').replace(/\//g, '.');
+    const message = m ? m[2] : i.message;
+    return { path, message };
+  });
+  return makeError(
+    'INVALID_ARGUMENT',
+    `引数が tools/list の inputSchema に合いません: ${detail.map((d) => (d.path ? `${d.path}: ${d.message}` : d.message)).join('; ')}`,
+    {
+      hint: `tools/list の ${name} の inputSchema を確認してください (型・必須・enum)`,
+      next_actions: [
+        { action: 'list_tools', reason: 'inputSchema で引数の型と必須項目を確認できます' },
+      ],
+      detail: { issues: detail },
+    }
+  );
+}
+
 export function createServer(): Server {
   const server = new Server(
     {
@@ -56,6 +95,14 @@ export function createServer(): Server {
         });
         return {
           content: [{ type: 'text', text: JSON.stringify(err, null, 2) }],
+          isError: true,
+        };
+      }
+
+      const invalid = await validateArgs(name, args);
+      if (invalid) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify(invalid, null, 2) }],
           isError: true,
         };
       }

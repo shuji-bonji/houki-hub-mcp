@@ -83,6 +83,8 @@ export interface LawServiceError {
     status?: number;
     url?: string;
     cause?: string;
+    /** INVALID_ARGUMENT: inputSchema 違反の一覧 (path は `limit` / `filters.domain` のようなドット区切り) */
+    issues?: Array<{ path: string; message: string }>;
   };
 }
 

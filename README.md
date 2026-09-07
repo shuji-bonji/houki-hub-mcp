@@ -133,7 +133,7 @@ DB を構築すると `search_fulltext` が条文本文を SQLite FTS5 で検索
 
 ## 状態
 
-**v0.5.2 (2026-09-07)**
+**v0.5.3 (2026-09-07)**
 
 - [x] e-Gov 法令API v2 クライアント（`searchLaws` / `getLawData` / `getLawRevisions`）
 - [x] 法令ツリー走査（条/項/号、目次抽出）+ LRU cache
@@ -145,7 +145,7 @@ DB を構築すると `search_fulltext` が条文本文を SQLite FTS5 で検索
 - [x] Phase 2-7: `search_fulltext` の FTS5 本実装（略称 OR 展開 / revision 重複排除 / relevance scoring / freshness）
 - [x] MCP SDK v2（`@modelcontextprotocol/server`）/ Node 22・24 / TypeScript 7 / Biome
 - [x] Trusted Publisher (OIDC) で publish
-- [x] テストスイート（**257 tests**）
+- [x] テストスイート（**258 tests**）
 
 ### 計画中
 
@@ -195,7 +195,7 @@ houki-egov-mcp の [`src/errors.ts`](src/errors.ts) は family 全体の **リ�
 
 | code | 用途 | retryable |
 |---|---|---|
-| `INVALID_ARGUMENT` | キーワード未指定など引数バリデーション失敗 | `false` |
+| `INVALID_ARGUMENT` | 引数が `tools/list` の `inputSchema` に合わない（型・必須・enum。`detail.issues[]` に内訳）、キーワード未指定 等 | `false` |
 | `INVALID_ARTICLE_NUM` | 条番号フォーマットが不正 (例: 未対応の漢数字) | `false` |
 | `OUT_OF_SCOPE` | 通達名で `get_law` を呼んだ等、別 MCP の管轄リソースが要求された | `false` |
 | `LAW_NOT_FOUND` | 略称解決・検索のいずれでも法令が見つからない | `false` |
