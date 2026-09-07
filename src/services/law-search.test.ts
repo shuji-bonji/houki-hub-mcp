@@ -253,6 +253,19 @@ describe('law scope (法令名 + 語 のクエリ)', () => {
     expect(r.hits[0].law_title).toBe('労働基準法');
   });
 
+  it('「労基法 第36条」は条番号で直接引く (本文検索なし)', () => {
+    const r = searchLawsInDb(db, '労基法 第36条');
+    expect(r.law_scope?.[0].law_title).toBe('労働基準法');
+    expect(r.hits.length).toBe(1);
+    expect(r.hits[0].article_num).toBe('36');
+    expect(r.hits[0].score_reasons).toContain('article_num_match');
+    expect(r.hits[0].snippet).toContain('使用者は');
+    // 存在しない条は 0 件
+    expect(searchLawsInDb(db, '労基法 第999条').hits).toEqual([]);
+    // 「消費税法 第30条の2」も引ける
+    expect(searchLawsInDb(db, '消費税法 第30条の2').hits[0].article_num).toBe('30の2');
+  });
+
   it('附則の条は supplementary_provision で減点される', () => {
     const r = searchLawsInDb(db, '適格請求書');
     // fixture には附則がないので減点理由は付かない

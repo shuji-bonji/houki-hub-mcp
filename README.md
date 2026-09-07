@@ -88,7 +88,11 @@ npm test
 
 「民法で不法行為について定めている条文は？」（bulk DB 構築後）
   → search_fulltext(keyword="民法 不法行為")
-  → law_scope=[民法] に絞って本文検索。709 条・724 条 などが snippet 付きで返る
+  → law_scope=[民法] に絞って本文検索。724 条・719 条・509 条 などが snippet 付きで返る
+
+「民法 第709条」（法令名 + 条番号だけ）
+  → search_fulltext(keyword="民法 第709条")
+  → 本文検索をせず、民法 709 条を直接返す
 ```
 
 ## CLI（ローカル DB の構築 — v0.3.1+）
@@ -129,7 +133,7 @@ DB を構築すると `search_fulltext` が条文本文を SQLite FTS5 で検索
 
 ## 状態
 
-**v0.5.1 (2026-09-07)**
+**v0.5.2 (2026-09-07)**
 
 - [x] e-Gov 法令API v2 クライアント（`searchLaws` / `getLawData` / `getLawRevisions`）
 - [x] 法令ツリー走査（条/項/号、目次抽出）+ LRU cache
@@ -141,7 +145,7 @@ DB を構築すると `search_fulltext` が条文本文を SQLite FTS5 で検索
 - [x] Phase 2-7: `search_fulltext` の FTS5 本実装（略称 OR 展開 / revision 重複排除 / relevance scoring / freshness）
 - [x] MCP SDK v2（`@modelcontextprotocol/server`）/ Node 22・24 / TypeScript 7 / Biome
 - [x] Trusted Publisher (OIDC) で publish
-- [x] テストスイート（**256 tests**）
+- [x] テストスイート（**257 tests**）
 
 ### 計画中
 

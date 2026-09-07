@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - 漢数字対応（「第三十条」を 30 に変換）
 - 大規模法令の応答サイズ対策の本格化（章/節単位での部分取得 API）
 
+## [0.5.2] - 2026-09-07
+
+### Added
+
+- `search_fulltext`: 「民法 第709条」「消費税法 第30条の2」のように **法令名 + 条番号だけ** のクエリは、本文検索をせずその条を直接返す（`lookupArticleInScope`）。v0.5.1 では条番号を取り除いた残りが法令名 1 語になり `law_meta`（法令名の一覧）しか返らなかった。応答には `law_scope` と `article_num_match` が付き、`snippet` は条文冒頭 120 文字
+- テスト 1 件追加（合計 **257 tests**）
+
 ## [0.5.1] - 2026-09-07
 
 **bug fix リリース — 編（Part）を持つ法令の本則が bulk DB に入っていなかった問題の修正**。v0.5.0 を plugin 経由で試用したところ、`search_fulltext("民法 不法行為")` が附則の条しか返さず、民法 709 条が出ませんでした。原因は XML パーサーが `MainProvision > Part > Chapter` の `Part`（編）を辿らず、民法・会社法・刑法・商法など編を持つ法令の本則の条をすべて落としていたことです。
@@ -497,7 +504,8 @@ Phase 0（スケルトン整備）完了リリース。
 
 **Phase 0 完了**。Phase 1 本実装の前に、**2週間の実運用痛点ログ**（`docs/PAIN-POINTS-TEMPLATE.md`）を経由して MVP スコープを確定する。
 
-[Unreleased]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/shuji-bonji/houki-egov-mcp/compare/v0.3.1...v0.4.0
